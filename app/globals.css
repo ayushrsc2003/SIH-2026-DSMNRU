@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 10, 14, 23;
+  --surface: 17, 23, 38;
+  --surface-border: 36, 48, 77;
+  --saffron: 255, 122, 41;
+  --green: 31, 174, 122;
+}
+
+body {
+  background-color: #0A0E17;
+  color: #F1F5F9;
+  font-family: var(--font-ibm-sans), system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+/* Custom Glassmorphism Utility */
+.glass-panel {
+  background: rgba(17, 23, 38, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-hover {
+  transition: all 0.3s ease;
+}
+
+.glass-panel-hover:hover {
+  background: rgba(26, 35, 58, 0.85);
+  border-color: rgba(255, 122, 41, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px -10px rgba(255, 122, 41, 0.15);
+}
+
+/* Gradient text helpers */
+.text-saffron-gradient {
+  background: linear-gradient(135deg, #FF7A29 0%, #FFA86B 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-tricolor-gradient {
+  background: linear-gradient(135deg, #FF7A29 0%, #FFFFFF 50%, #1FAE7A 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-green-gradient {
+  background: linear-gradient(135deg, #1FAE7A 0%, #4ADE80 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* SIH Tricolor Badge Accent Line */
+.tricolor-border {
+  border-image: linear-gradient(to right, #FF7A29, #FFFFFF, #1FAE7A) 1;
+}
+
+/* Glow effects */
+.glow-saffron {
+  box-shadow: 0 0 35px -5px rgba(255, 122, 41, 0.3);
+}
+
+.glow-green {
+  box-shadow: 0 0 35px -5px rgba(31, 174, 122, 0.3);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0A0E17;
+}
+::-webkit-scrollbar-thumb {
+  background: #1F2B45;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #FF7A29;
+}

@@ -1,0 +1,41 @@
+// Prisma schema for SIH 2026 Internal Round Portal (DSMNRU Lucknow)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Team {
+  id          String   @id @default(cuid())
+  teamId      String   @unique
+  teamName    String
+  domain      String
+  ideaSummary String
+  mentorName  String
+  mentorDept  String
+  createdAt   DateTime @default(now())
+
+  members Member[]
+}
+
+model Member {
+  id           String  @id @default(cuid())
+  teamId       String
+  name         String
+  branch       String
+  year         String
+  universityId String
+  gender       String
+  email        String  @unique
+  phone        String
+  isLeader     Boolean @default(false)
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@index([email])
+}
