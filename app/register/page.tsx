@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { User, Mail, Phone, Upload, CheckCircle2, AlertCircle, Send, RefreshCw, FileText, ExternalLink, ShieldCheck, Sparkles, FolderOpen, Globe, ArrowUpRight } from 'lucide-react';
+import { User, Mail, Phone, Upload, CheckCircle2, AlertCircle, Send, RefreshCw, FileText, ExternalLink, ShieldCheck, Sparkles, Lock } from 'lucide-react';
 
 interface MemberFormState {
   name: string;
@@ -19,13 +19,10 @@ const INITIAL_MEMBER: MemberFormState = {
   phone: '',
 };
 
-const OFFICIAL_GOOGLE_DRIVE_FOLDER_URL = "https://drive.google.com/drive/folders/1pkQZVk9vs5_PW9H1tYnH7-HaQJ1xZsaw";
-
 export default function RegisterPage() {
   const [teamName, setTeamName] = useState('');
   const [problemStatementTitle, setProblemStatementTitle] = useState('');
   const [problemStatementId, setProblemStatementId] = useState('');
-  const [googleDriveLink, setGoogleDriveLink] = useState('');
   const [acknowledged, setAcknowledged] = useState(false);
 
   // Leader state
@@ -124,8 +121,8 @@ export default function RegisterPage() {
     const uniqueEmails = new Set(allEmails);
     const noDuplicateEmails = allEmails.length === 6 && uniqueEmails.size === 6;
 
-    // File Uploaded or Google Drive Link provided
-    const fileOrDriveValid = (pptFile !== null && fileError === null) || googleDriveLink.trim() !== '';
+    // File Uploaded & Valid
+    const fileValid = pptFile !== null && fileError === null;
 
     const canSubmit =
       metaValid &&
@@ -133,7 +130,7 @@ export default function RegisterPage() {
       membersValid &&
       hasFemale &&
       noDuplicateEmails &&
-      fileOrDriveValid &&
+      fileValid &&
       acknowledged;
 
     return {
@@ -143,10 +140,10 @@ export default function RegisterPage() {
       hasFemale,
       femaleCount,
       noDuplicateEmails,
-      fileOrDriveValid,
+      fileValid,
       canSubmit,
     };
-  }, [teamName, problemStatementTitle, problemStatementId, leader, members, pptFile, fileError, googleDriveLink, acknowledged]);
+  }, [teamName, problemStatementTitle, problemStatementId, leader, members, pptFile, fileError, acknowledged]);
 
   // Form Submit Handler
   const handleSubmit = async (e: React.FormEvent) => {
@@ -154,7 +151,7 @@ export default function RegisterPage() {
     setServerError(null);
 
     if (!checklist.canSubmit) {
-      setServerError('Please complete all required fields and checklist rules before submitting.');
+      setServerError('Please complete all required fields and upload your PPT/PDF file before submitting.');
       return;
     }
 
@@ -164,7 +161,6 @@ export default function RegisterPage() {
     formData.append('teamName', teamName.trim());
     formData.append('problemStatementTitle', problemStatementTitle.trim());
     formData.append('problemStatementId', problemStatementId.trim());
-    formData.append('googleDriveLink', googleDriveLink.trim() || OFFICIAL_GOOGLE_DRIVE_FOLDER_URL);
     formData.append('acknowledged', acknowledged ? 'true' : 'false');
 
     formData.append('leaderName', leader.name.trim());
@@ -204,7 +200,6 @@ export default function RegisterPage() {
     setTeamName('');
     setProblemStatementTitle('');
     setProblemStatementId('');
-    setGoogleDriveLink('');
     setAcknowledged(false);
     setLeader({ ...INITIAL_MEMBER });
     setMembers([
@@ -237,10 +232,16 @@ export default function RegisterPage() {
           <p className="text-sm text-slate-400 mt-2 max-w-xl">
             Register your team (1 Leader + 5 Members). Generates official SIH 2026 College Authorization Letter automatically.
           </p>
-          
-          <div className="mt-4 inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-saffron/10 border border-saffron/30 text-saffron text-xs font-mono">
-            <ShieldCheck className="w-4 h-4" />
-            <span>Policy: Single Form Submission Per User Email</span>
+
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            <span className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-accentGreen/10 border border-accentGreen/30 text-accentGreen text-xs font-mono">
+              <Lock className="w-3.5 h-3.5" />
+              <span>Private File Storage: Uploads Restricted to Admin Review</span>
+            </span>
+            <span className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-saffron/10 border border-saffron/30 text-saffron text-xs font-mono">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Single Form Submission Per User Email</span>
+            </span>
           </div>
 
           <div className="w-16 h-1 bg-gradient-to-r from-saffron to-accentGreen rounded-full mt-4" />
@@ -271,7 +272,7 @@ export default function RegisterPage() {
 
             <div className="p-4 rounded-xl bg-navy-900/80 border border-surface-border text-xs text-slate-400 font-mono space-y-1 max-w-md mx-auto">
               <p className="text-saffron font-bold">🔒 Admin Workflow Note:</p>
-              <p>Your official Authorization Letter has been routed to college administration for printing and Principal/Dean wet signature.</p>
+              <p>Your uploaded PPT file and official Authorization Letter have been safely received by college administration.</p>
             </div>
 
             <button
@@ -312,8 +313,8 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="flex items-center space-x-2 p-2.5 rounded-xl bg-surface-light/60 border border-surface-border">
-                  {checklist.fileOrDriveValid ? <CheckCircle2 className="w-4 h-4 text-accentGreen shrink-0" /> : <AlertCircle className="w-4 h-4 text-slate-500 shrink-0" />}
-                  <span className="text-slate-200">Google Drive / PPT File</span>
+                  {checklist.fileValid ? <CheckCircle2 className="w-4 h-4 text-accentGreen shrink-0" /> : <AlertCircle className="w-4 h-4 text-slate-500 shrink-0" />}
+                  <span className="text-slate-200">PPT &lt; 5MB Uploaded</span>
                 </div>
               </div>
             </div>
@@ -541,83 +542,48 @@ export default function RegisterPage() {
               ))}
             </div>
 
-            {/* Step 4: Official Google Drive Upload Folder Banner */}
-            <div className="p-6 sm:p-8 rounded-2xl glass-panel border border-accentGreen/40 space-y-6">
+            {/* Step 4: Direct Private File Upload (Max 5MB) */}
+            <div className="p-6 sm:p-8 rounded-2xl glass-panel border border-surface-border space-y-4">
               <div className="border-b border-surface-border pb-3 flex items-center justify-between">
                 <h2 className="text-lg font-heading font-bold text-white flex items-center space-x-2">
-                  <span className="w-6 h-6 rounded-full bg-accentGreen text-white text-xs flex items-center justify-center font-mono font-bold">4</span>
-                  <span>Official Google Drive Presentation Folder</span>
+                  <span className="w-6 h-6 rounded-full bg-saffron text-white text-xs flex items-center justify-center font-mono font-bold">4</span>
+                  <span>Upload Idea Presentation File (Required)</span>
                 </h2>
-                <span className="px-3 py-1 text-xs font-mono font-bold rounded-lg bg-accentGreen/20 text-accentGreen border border-accentGreen/40">
-                  Required Destination
+                <span className="px-2.5 py-0.5 text-[10px] font-mono rounded bg-accentGreen/15 text-accentGreen border border-accentGreen/30">
+                  🔒 Encrypted Server Storage
                 </span>
               </div>
 
-              {/* Banner with direct link to Google Drive folder */}
-              <div className="p-5 rounded-2xl bg-navy-900/80 border border-accentGreen/30 space-y-3">
-                <div className="flex items-start space-x-3">
-                  <FolderOpen className="w-6 h-6 text-accentGreen shrink-0 mt-1" />
-                  <div>
-                    <h3 className="text-sm font-heading font-bold text-white">
-                      Official DSMNRU SIH 2026 Submission Folder
-                    </h3>
-                    <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                      Upload your idea PPT/PDF file directly to our official university Google Drive folder, named as <strong className="text-saffron">SIH2026_[TeamName]_[PS_ID]</strong>.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
-                  <a
-                    href={OFFICIAL_GOOGLE_DRIVE_FOLDER_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-accentGreen hover:bg-accentGreen-hover text-white text-xs font-heading font-bold shadow-green-glow transition-all"
-                  >
-                    <FolderOpen className="w-4 h-4" />
-                    <span>Open Official Google Drive Folder</span>
-                    <ArrowUpRight className="w-4 h-4" />
-                  </a>
-
-                  <span className="text-xs text-slate-400 font-mono">
-                    or paste your uploaded file link below:
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Input Option A: Google Drive Uploaded File Link */}
-                <div className="space-y-2">
-                  <label className="block text-xs font-mono font-semibold text-slate-300 uppercase">
-                    Option 1: Paste Your Google Drive File Link <span className="text-saffron">*</span>
-                  </label>
+              <div>
+                <label className="block text-xs font-mono font-semibold text-slate-300 uppercase mb-2">
+                  Upload Idea File (.pdf, .ppt, .pptx only, Max 5 MB) <span className="text-saffron">*</span>
+                </label>
+                
+                <div className="relative border-2 border-dashed border-surface-border hover:border-saffron rounded-2xl p-8 text-center transition-colors">
                   <input
-                    type="url"
-                    placeholder="https://drive.google.com/file/d/..."
-                    value={googleDriveLink}
-                    onChange={(e) => setGoogleDriveLink(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-surface-border text-white text-xs focus:outline-none focus:border-accentGreen"
+                    type="file"
+                    required
+                    accept=".pdf,.ppt,.pptx"
+                    onChange={handleFileChange}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                   />
-                  <p className="text-[10px] text-slate-400 font-mono">Paste link of your file uploaded to the folder above</p>
+                  <Upload className="w-9 h-9 text-saffron mx-auto mb-2" />
+                  <p className="text-sm font-heading font-bold text-white">
+                    {pptFile ? `Selected: ${pptFile.name} (${(pptFile.size / (1024 * 1024)).toFixed(2)} MB)` : 'Click or Drag & Drop your presentation file here'}
+                  </p>
+                  <p className="text-xs text-slate-400 font-mono mt-1">Allowed formats: .pdf, .ppt, .pptx (Maximum size: 5 MB)</p>
                 </div>
 
-                {/* Input Option B: Direct Attachment Backup */}
-                <div className="space-y-2">
-                  <label className="block text-xs font-mono font-semibold text-slate-300 uppercase">
-                    Option 2: Direct Local Backup Upload (.pdf, .ppt, .pptx &lt; 5MB)
-                  </label>
-                  <div className="relative border-2 border-dashed border-surface-border hover:border-saffron rounded-xl p-3 text-center transition-colors">
-                    <input
-                      type="file"
-                      accept=".pdf,.ppt,.pptx"
-                      onChange={handleFileChange}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                    />
-                    <p className="text-xs font-heading font-bold text-white truncate">
-                      {pptFile ? `Selected: ${pptFile.name}` : 'Click to attach local file backup'}
-                    </p>
-                  </div>
-                  {fileError && <p className="text-xs font-mono text-red-400">{fileError}</p>}
+                {fileError && (
+                  <p className="mt-2 text-xs font-mono text-red-400 flex items-center space-x-1">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    <span>{fileError}</span>
+                  </p>
+                )}
+
+                <div className="mt-3 p-3 rounded-xl bg-navy-900/60 border border-surface-border text-[11px] font-mono text-slate-400 flex items-center space-x-2">
+                  <Lock className="w-4 h-4 text-accentGreen shrink-0" />
+                  <span>Your file is uploaded directly to college admin storage. No student can view or delete your presentation.</span>
                 </div>
               </div>
             </div>
@@ -659,7 +625,7 @@ export default function RegisterPage() {
                 {submitting ? (
                   <>
                     <RefreshCw className="w-5 h-5 animate-spin" />
-                    <span>Submitting Team Registration...</span>
+                    <span>Uploading File & Processing Submission...</span>
                   </>
                 ) : (
                   <>
