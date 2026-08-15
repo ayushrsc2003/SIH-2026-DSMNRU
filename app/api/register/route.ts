@@ -22,6 +22,7 @@ export async function POST(req: Request) {
     const teamName = (formData.get('teamName') as string || '').trim();
     const problemStatementId = (formData.get('problemStatementId') as string || '').trim();
     const problemStatementTitle = (formData.get('problemStatementTitle') as string || '').trim();
+    const googleDriveLink = (formData.get('googleDriveLink') as string || '').trim();
     const acknowledged = formData.get('acknowledged') === 'true' || formData.get('acknowledged') === 'on';
 
     // Parse Leader details
@@ -38,7 +39,7 @@ export async function POST(req: Request) {
       try {
         members = JSON.parse(membersRaw);
       } catch (e) {
-        // Fallback parsing individual form keys
+        // Fallback parsing form keys
       }
     }
 
@@ -104,12 +105,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `Team Leader mobile number must be a valid 10-digit number.` }, { status: 400 });
     }
 
-    const allEmails = [leaderEmail, ...members.map((m) => m.email)];
+    const allEmails = [leaderEmail, ...members.map((m) => m.email.toLowerCase().trim())];
     const uniqueEmails = new Set(allEmails);
 
     if (uniqueEmails.size !== 6) {
       return NextResponse.json(
-        { error: 'Duplicate email addresses detected within your team submission.' },
+        { error: 'Duplicate email addresses detected within your team submission payload.' },
         { status: 400 }
       );
     }
@@ -124,64 +125,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // 4. Gender Diversity Check (Min. 1 Female across Leader + 5 Members)
-    const allGenders = [leaderGender, ...members.map((m) => m.gender)];
-    const femaleCount = allGenders.filter((g) => g.toLowerCase() === 'female' || g.toLowerCase() === 'f').length;
-
-    if (femaleCount < 1) {
-      return NextResponse.json(
-        { error: 'SIH Rule Violation: Every team must include at least 1 female participant across leader and members.' },
-        { status: 400 }
-      );
-    }
-
-    // 5. File Upload Handling (.pdf, .ppt, .pptx only, Max 5MB)
-    const pptFile = formData.get('pptFile') as File | null;
-    let pptUrl = '';
-    let pptFileName = '';
-
-    if (!pptFile || typeof pptFile.name !== 'string' || pptFile.size === 0) {
-      return NextResponse.json(
-        { error: 'Idea PPT/PDF file upload is required.' },
-        { status: 400 }
-      );
-    }
-
-    // Check File Size (Max 5MB = 5 * 1024 * 1024 bytes)
-    const maxSizeBytes = 5 * 1024 * 1024;
-    if (pptFile.size > maxSizeBytes) {
-      return NextResponse.json(
-        { error: `File size exceeds maximum limit of 5 MB. Current file size: ${(pptFile.size / (1024 * 1024)).toFixed(2)} MB` },
-        { status: 400 }
-      );
-    }
-
-    // Check File Extension
-    const fileExt = path.extname(pptFile.name).toLowerCase();
-    if (!['.pdf', '.ppt', '.pptx'].includes(fileExt)) {
-      return NextResponse.json(
-        { error: 'Invalid file type. Only .pdf, .ppt, and .pptx files are allowed.' },
-        { status: 400 }
-      );
-    }
-
-    // Save File to Storage
-    const uploadsDir = path.join(process.cwd(), 'storage', 'uploads');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
-    const timestamp = Date.now();
-    const sanitizedTeam = teamName.replace(/[^a-zA-Z0-9_-]/g, '_');
-    pptFileName = `SIH2026_Idea_${sanitizedTeam}_${timestamp}${fileExt}`;
-    const pptFilePath = path.join(uploadsDir, pptFileName);
-
-    const arrayBuffer = await pptFile.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    fs.writeFileSync(pptFilePath, buffer);
-    pptUrl = `/storage/uploads/${pptFileName}`;
-
-    // 6. Check Database for Pre-Existing Registered Emails
+    // 4. STRICT ONE USER = ONE SUBMISSION ENFORCEMENT
     const existingMembers = await prisma.member.findMany({
       where: {
         email: { in: allEmails },
@@ -194,12 +138,68 @@ export async function POST(req: Request) {
     });
 
     if (existingMembers.length > 0) {
-      const conflictEmails = existingMembers.map((m) => `${m.email} (Team: ${m.team.teamName})`).join(', ');
+      const conflictEmails = existingMembers.map((m) => `"${m.email}" (already registered in Team: ${m.team.teamName})`).join(', ');
       return NextResponse.json(
         {
-          error: `Registration failed! The following email(s) are already registered in another team: ${conflictEmails}. A student can belong to AT MOST ONE team.`,
+          error: `Single Submission Violation: A user can submit/belong to AT MOST ONE team. The following email(s) have already submitted a form: ${conflictEmails}.`,
         },
         { status: 409 }
+      );
+    }
+
+    // 5. Gender Diversity Check (Min. 1 Female across Leader + 5 Members)
+    const allGenders = [leaderGender, ...members.map((m) => m.gender)];
+    const femaleCount = allGenders.filter((g) => g.toLowerCase() === 'female' || g.toLowerCase() === 'f').length;
+
+    if (femaleCount < 1) {
+      return NextResponse.json(
+        { error: 'SIH Rule Violation: Every team must include at least 1 female participant across leader and members.' },
+        { status: 400 }
+      );
+    }
+
+    // 6. PPT Upload or Google Drive Link Handling
+    const pptFile = formData.get('pptFile') as File | null;
+    let pptUrl = '';
+    let pptFileName = '';
+
+    if (googleDriveLink) {
+      pptUrl = googleDriveLink;
+      pptFileName = 'Google Drive Shared Presentation';
+    } else if (pptFile && typeof pptFile.name === 'string' && pptFile.size > 0) {
+      const maxSizeBytes = 5 * 1024 * 1024;
+      if (pptFile.size > maxSizeBytes) {
+        return NextResponse.json(
+          { error: `File size exceeds maximum limit of 5 MB. Current file size: ${(pptFile.size / (1024 * 1024)).toFixed(2)} MB` },
+          { status: 400 }
+        );
+      }
+
+      const fileExt = path.extname(pptFile.name).toLowerCase();
+      if (!['.pdf', '.ppt', '.pptx'].includes(fileExt)) {
+        return NextResponse.json(
+          { error: 'Invalid file type. Only .pdf, .ppt, and .pptx files are allowed.' },
+          { status: 400 }
+        );
+      }
+
+      const uploadsDir = path.join(process.cwd(), 'storage', 'uploads');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      const timestamp = Date.now();
+      const sanitizedTeam = teamName.replace(/[^a-zA-Z0-9_-]/g, '_');
+      pptFileName = `SIH2026_Idea_${sanitizedTeam}_${timestamp}${fileExt}`;
+      const pptFilePath = path.join(uploadsDir, pptFileName);
+
+      const arrayBuffer = await pptFile.arrayBuffer();
+      fs.writeFileSync(pptFilePath, Buffer.from(arrayBuffer));
+      pptUrl = `/storage/uploads/${pptFileName}`;
+    } else {
+      return NextResponse.json(
+        { error: 'Please either upload your PPT/PDF file (under 5MB) or provide a Google Drive share link.' },
+        { status: 400 }
       );
     }
 
@@ -222,7 +222,7 @@ export async function POST(req: Request) {
       })),
     });
 
-    // 8. Save Record in Database via Transaction
+    // 8. Save Record in Database via Atomic Transaction
     const teamId = generateHumanTeamId();
 
     const createdTeam = await prisma.team.create({
@@ -233,6 +233,7 @@ export async function POST(req: Request) {
         problemStatementTitle,
         pptUrl,
         pptFileName,
+        googleDriveLink: googleDriveLink || null,
         authDocxPath: letterResult.docxPath,
         authPdfPath: letterResult.pdfPath,
         members: {
@@ -256,11 +257,10 @@ export async function POST(req: Request) {
       },
     });
 
-    // 9. CRITICAL SECURITY RESPONSE: Return ONLY plain success message to student. NO download link or file URL.
     return NextResponse.json(
       {
         success: true,
-        message: `Registration submitted successfully for Team "${createdTeam.teamName}"! Your official SIH 2026 College Authorization Letter has been generated and sent to the college administration for principal signature and wet seal.`,
+        message: `Registration submitted successfully for Team "${createdTeam.teamName}"! Single form submission lock applied for all 6 member email addresses.`,
         teamId: createdTeam.teamId,
       },
       { status: 201 }

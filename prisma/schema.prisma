@@ -21,6 +21,7 @@ model Team {
   mentorDept            String   @default("Computer Science & Engineering")
   pptUrl                String?  
   pptFileName           String?  
+  googleDriveLink       String?  
   authDocxPath          String?  
   authPdfPath           String?  
   createdAt             DateTime @default(now())

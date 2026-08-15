@@ -19,6 +19,7 @@ export interface RegistrationPayload {
   mentorDept: string;
   pptUrl?: string;
   pptFileName?: string;
+  googleDriveLink?: string;
   members: MemberInput[];
 }
 
@@ -40,6 +41,7 @@ export interface TeamRecord {
   mentorDept: string;
   pptUrl?: string | null;
   pptFileName?: string | null;
+  googleDriveLink?: string | null;
   createdAt: string;
   members: MemberRecord[];
 }

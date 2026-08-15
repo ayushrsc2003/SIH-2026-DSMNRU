@@ -1,8 +1,15 @@
 {
-  "/api/admin/letters/route": "app/api/admin/letters/route.js",
-  "/register/page": "app/register/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
   "/admin/page": "app/admin/page.js",
+  "/api/admin/login/route": "app/api/admin/login/route.js",
+  "/details/page": "app/details/page.js",
   "/page": "app/page.js",
+  "/api/admin/logout/route": "app/api/admin/logout/route.js",
+  "/register/page": "app/register/page.js",
   "/api/admin/export/route": "app/api/admin/export/route.js",
-  "/details/page": "app/details/page.js"
+  "/api/admin/letters/[id]/download/route": "app/api/admin/letters/[id]/download/route.js",
+  "/api/admin/letters/route": "app/api/admin/letters/route.js",
+  "/api/check-status/route": "app/api/check-status/route.js",
+  "/api/admin/teams/route": "app/api/admin/teams/route.js",
+  "/api/register/route": "app/api/register/route.js"
 }
