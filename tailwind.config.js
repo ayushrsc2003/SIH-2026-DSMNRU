@@ -32,9 +32,10 @@ module.exports = {
         }
       },
       fontFamily: {
-        sans: ['var(--font-ibm-sans)', 'sans-serif'],
-        heading: ['var(--font-space-grotesk)', 'sans-serif'],
-        mono: ['var(--font-ibm-mono)', 'monospace'],
+        // Native System Font Stack (Zero Bandwidth & Zero Load Delay)
+        sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+        heading: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', '"Courier New"', 'monospace'],
       },
       boxShadow: {
         'saffron-glow': '0 0 25px rgba(255, 122, 41, 0.3)',

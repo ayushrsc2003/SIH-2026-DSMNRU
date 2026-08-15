@@ -1,27 +1,5 @@
 import type { Metadata } from 'next';
-import { Space_Grotesk, IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
-  variable: '--font-space-grotesk',
-  weight: ['500', '600', '700'],
-  display: 'swap',
-});
-
-const ibmSans = IBM_Plex_Sans({
-  subsets: ['latin'],
-  variable: '--font-ibm-sans',
-  weight: ['400', '500', '600', '700'],
-  display: 'swap',
-});
-
-const ibmMono = IBM_Plex_Mono({
-  subsets: ['latin'],
-  variable: '--font-ibm-mono',
-  weight: ['400', '500', '600'],
-  display: 'swap',
-});
 
 export const metadata: Metadata = {
   title: 'SIH 2026 Internal Round | IET, DSMNRU Lucknow',
@@ -50,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${spaceGrotesk.variable} ${ibmSans.variable} ${ibmMono.variable}`}>
+    <html lang="en">
       <body className="bg-background text-slate-100 font-sans antialiased selection:bg-saffron selection:text-white">
         {children}
       </body>
