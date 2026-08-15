@@ -10,8 +10,6 @@ export default function HallOfFame() {
       teamName: 'Team CodeCRUD',
       role: 'Team Leader',
       achievement: 'SIH National Grand Finalist',
-      domain: 'Smart Education',
-      project: 'AI-Driven Accessible Learning Assistant for Visually Impaired Students',
       branch: 'B.Tech CSE, IET DSMNRU',
       quote: '"SIH internal round at DSMNRU gave us the platform and mentor feedback needed to refine our prototype into a winning national entry."',
     },
@@ -20,8 +18,6 @@ export default function HallOfFame() {
       teamName: 'Team Emotispeak',
       role: 'Team Leader',
       achievement: 'SIH National Grand Finalist',
-      domain: 'MedTech / Assistive Tech',
-      project: 'Neural Emotion-to-Speech Communication Interface for Non-Verbal Individuals',
       branch: 'B.Tech CSE, IET DSMNRU',
       quote: '"Building for real problem statements under tight deadlines prepared our team for national competition and industry coding standards."',
     },
@@ -67,19 +63,9 @@ export default function HallOfFame() {
                   <span className="text-xs font-mono text-slate-400">{item.branch}</span>
                 </div>
 
-                <div className="space-y-1 mb-4">
+                <div className="space-y-1 mb-6">
                   <h3 className="text-2xl font-heading font-extrabold text-white">{item.teamName}</h3>
                   <p className="text-sm font-semibold text-accentGreen">Lead by {item.name} ({item.role})</p>
-                </div>
-
-                <div className="p-4 rounded-xl bg-surface-light/70 border border-surface-border space-y-2 mb-6">
-                  <div className="flex items-center space-x-2 text-xs font-mono text-slate-300">
-                    <Code className="w-4 h-4 text-saffron" />
-                    <strong className="text-white">Domain:</strong> {item.domain}
-                  </div>
-                  <p className="text-xs text-slate-300 font-sans leading-relaxed">
-                    <strong className="text-white">Project:</strong> {item.project}
-                  </p>
                 </div>
 
                 <blockquote className="text-xs sm:text-sm text-slate-300 italic font-sans border-l-2 border-saffron pl-4 py-1">

@@ -15,9 +15,13 @@ async function main() {
       teamId: 'SIH26-89201',
       teamName: 'CodeCRUD',
       domain: 'Smart Education',
+      problemStatementId: 'SIH1542',
+      problemStatementTitle: 'AI-Driven Accessible Learning Assistant for Differently-Abled Students',
       ideaSummary: 'AI-driven personalized learning assistant for differently-abled university students with real-time speech and gesture parsing.',
       mentorName: 'Dr. Rahul Sharma',
       mentorDept: 'Computer Science & Engineering',
+      pptUrl: '/uploads/SIH26-89201_CodeCRUD_PPT.pdf',
+      pptFileName: 'SIH26-89201_CodeCRUD_PPT.pdf',
       members: {
         create: [
           {
@@ -92,9 +96,13 @@ async function main() {
       teamId: 'SIH26-44192',
       teamName: 'Emotispeak',
       domain: 'MedTech / Healthcare',
+      problemStatementId: 'SIH1289',
+      problemStatementTitle: 'Neural Signal Assistive Communication Interface for Non-Verbal Speech',
       ideaSummary: 'Assistive emotion-to-speech communication interface designed for non-verbal individuals using neural signal processing.',
       mentorName: 'Ms. Shalini Raghuvanshi',
       mentorDept: 'Computer Science & Engineering',
+      pptUrl: '/uploads/SIH26-44192_Emotispeak_PPT.pdf',
+      pptFileName: 'SIH26-44192_Emotispeak_PPT.pdf',
       members: {
         create: [
           {
@@ -169,9 +177,13 @@ async function main() {
       teamId: 'SIH26-10493',
       teamName: 'CyberShield',
       domain: 'Cyber Security',
+      problemStatementId: 'SIH1608',
+      problemStatementTitle: 'Decentralized Blockchain Academic Credential & Certificate Verification System',
       ideaSummary: 'Decentralized blockchain credential verification platform to prevent fake degree certificates and academic fraud.',
       mentorName: 'Er. Alok Agrawal',
       mentorDept: 'Information Technology',
+      pptUrl: '/uploads/SIH26-10493_CyberShield_PPT.pdf',
+      pptFileName: 'SIH26-10493_CyberShield_PPT.pdf',
       members: {
         create: [
           {
@@ -241,9 +253,9 @@ async function main() {
   });
 
   console.log(`✅ Seeding complete! Created 3 teams:`);
-  console.log(` - ${team1.teamName} (${team1.teamId})`);
-  console.log(` - ${team2.teamName} (${team2.teamId})`);
-  console.log(` - ${team3.teamName} (${team3.teamId})`);
+  console.log(` - ${team1.teamName} (${team1.teamId}) - PS: ${team1.problemStatementId}`);
+  console.log(` - ${team2.teamName} (${team2.teamId}) - PS: ${team2.problemStatementId}`);
+  console.log(` - ${team3.teamName} (${team3.teamId}) - PS: ${team3.problemStatementId}`);
 }
 
 main()

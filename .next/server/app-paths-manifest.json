@@ -1,11 +1,8 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
+  "/api/admin/letters/route": "app/api/admin/letters/route.js",
+  "/register/page": "app/register/page.js",
   "/admin/page": "app/admin/page.js",
-  "/api/admin/logout/route": "app/api/admin/logout/route.js",
-  "/api/admin/login/route": "app/api/admin/login/route.js",
-  "/api/check-status/route": "app/api/check-status/route.js",
-  "/api/register/route": "app/api/register/route.js",
   "/page": "app/page.js",
   "/api/admin/export/route": "app/api/admin/export/route.js",
-  "/api/admin/teams/route": "app/api/admin/teams/route.js"
+  "/details/page": "app/details/page.js"
 }

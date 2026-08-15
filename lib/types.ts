@@ -12,9 +12,13 @@ export interface MemberInput {
 export interface RegistrationPayload {
   teamName: string;
   domain: string;
+  problemStatementId: string;
+  problemStatementTitle: string;
   ideaSummary: string;
   mentorName: string;
   mentorDept: string;
+  pptUrl?: string;
+  pptFileName?: string;
   members: MemberInput[];
 }
 
@@ -29,9 +33,13 @@ export interface TeamRecord {
   teamId: string;
   teamName: string;
   domain: string;
+  problemStatementId: string;
+  problemStatementTitle: string;
   ideaSummary: string;
   mentorName: string;
   mentorDept: string;
+  pptUrl?: string | null;
+  pptFileName?: string | null;
   createdAt: string;
   members: MemberRecord[];
 }
@@ -41,4 +49,6 @@ export interface CheckStatusResponse {
   message?: string;
   teamName?: string;
   teamId?: string;
+  domain?: string;
+  problemStatementId?: string;
 }

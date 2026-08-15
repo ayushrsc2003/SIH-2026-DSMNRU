@@ -5,19 +5,25 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model Team {
-  id          String   @id @default(cuid())
-  teamId      String   @unique
-  teamName    String
-  domain      String
-  ideaSummary String
-  mentorName  String
-  mentorDept  String
-  createdAt   DateTime @default(now())
+  id                    String   @id @default(cuid())
+  teamId                String   @unique
+  teamName              String
+  domain                String   @default("General Innovation")
+  problemStatementId    String   @default("SIH1721")
+  problemStatementTitle String
+  ideaSummary           String   @default("See attached PPT file")
+  mentorName            String   @default("Assigned Faculty Mentor")
+  mentorDept            String   @default("Computer Science & Engineering")
+  pptUrl                String?  
+  pptFileName           String?  
+  authDocxPath          String?  
+  authPdfPath           String?  
+  createdAt             DateTime @default(now())
 
   members Member[]
 }
@@ -26,9 +32,9 @@ model Member {
   id           String  @id @default(cuid())
   teamId       String
   name         String
-  branch       String
-  year         String
-  universityId String
+  branch       String  @default("B.Tech CSE")
+  year         String  @default("4th Year")
+  universityId String  @default("DSMNRU/2022/REG")
   gender       String
   email        String  @unique
   phone        String
