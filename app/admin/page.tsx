@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Lock, LogOut, Download, Search, Filter, Users, ShieldCheck, PieChart, ChevronDown, ChevronUp, RefreshCw, AlertCircle, FileText, CheckCircle2 } from 'lucide-react';
+import { Lock, LogOut, Download, Search, Filter, Users, ShieldCheck, PieChart, ChevronDown, ChevronUp, RefreshCw, AlertCircle, FileText, CheckCircle2, ToggleLeft, ToggleRight, Power } from 'lucide-react';
 
 interface SubmissionRecord {
   id: string;
@@ -27,7 +27,53 @@ export default function AdminPage() {
   const [loadingData, setLoadingData] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Fetch Admin Submissions with Bearer Token
+  // Registration Toggle Control State
+  const [isRegistrationActive, setIsRegistrationActive] = useState<boolean>(false);
+  const [toggleLoading, setToggleLoading] = useState<boolean>(false);
+
+  // Fetch Registration Status & Submissions on Auth
+  useEffect(() => {
+    fetchRegistrationStatus();
+  }, []);
+
+  const fetchRegistrationStatus = async () => {
+    try {
+      const res = await fetch('/api/config/registration-status');
+      if (res.ok) {
+        const data = await res.json();
+        setIsRegistrationActive(data.isRegistrationActive);
+      }
+    } catch (err) {
+      console.error('Error fetching config:', err);
+    }
+  };
+
+  const handleToggleRegistration = async () => {
+    setToggleLoading(true);
+    try {
+      const nextStatus = !isRegistrationActive;
+      const res = await fetch('/api/config/registration-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-token': adminTokenInput.trim(),
+        },
+        body: JSON.stringify({ isRegistrationActive: nextStatus }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setIsRegistrationActive(data.isRegistrationActive);
+      } else {
+        alert(data.error || 'Failed to toggle registration status.');
+      }
+    } catch (err) {
+      alert('Network error toggling registration status.');
+    } finally {
+      setToggleLoading(false);
+    }
+  };
+
   const fetchSubmissions = async (token: string) => {
     setLoadingData(true);
     setLoginError(null);
@@ -42,6 +88,7 @@ export default function AdminPage() {
         const data = await res.json();
         setSubmissions(data.submissions || []);
         setAuthenticated(true);
+        fetchRegistrationStatus();
       } else {
         const data = await res.json();
         setLoginError(data.error || 'Invalid Admin Authorization Token.');
@@ -91,7 +138,7 @@ export default function AdminPage() {
               <Lock className="w-6 h-6" />
             </div>
             <h1 className="text-2xl font-heading font-bold text-white">SIH 2026 Admin Portal</h1>
-            <p className="text-xs text-slate-400 font-mono">Restricted Access — Authorization Letter Desk</p>
+            <p className="text-xs text-slate-400 font-mono">Restricted Access — Authorization Letter & Controls Desk</p>
           </div>
 
           {loginError && (
@@ -143,14 +190,14 @@ export default function AdminPage() {
         <div>
           <div className="flex items-center space-x-3">
             <h1 className="text-2xl font-heading font-extrabold text-white">
-              SIH 2026 Admin Authorization Desk
+              SIH 2026 Admin Desk
             </h1>
             <span className="px-2.5 py-0.5 text-xs font-mono rounded-full bg-saffron/20 text-saffron border border-saffron/40">
-              Token Protected
+              Admin Authenticated
             </span>
           </div>
           <p className="text-xs text-slate-400 font-mono mt-1">
-            Download & print official SIH College Authorization Letters for Dean/Director wet signature
+            System Registration Controls & Authorization Letter Downloads
           </p>
         </div>
 
@@ -169,6 +216,46 @@ export default function AdminPage() {
           >
             <LogOut className="w-4 h-4 text-red-400" />
             <span>Exit Admin</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Admin Registration Toggle Control Banner */}
+      <div className="max-w-7xl mx-auto glass-panel p-6 rounded-2xl border border-saffron/30 shadow-saffron-glow">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center space-x-2">
+              <Power className={`w-5 h-5 ${isRegistrationActive ? 'text-accentGreen' : 'text-saffron'}`} />
+              <h2 className="text-lg font-heading font-bold text-white">
+                Public Student Registration Status Control
+              </h2>
+            </div>
+            <p className="text-xs text-slate-300 font-sans">
+              Currently, student registration is{' '}
+              <strong className={isRegistrationActive ? 'text-accentGreen' : 'text-saffron'}>
+                {isRegistrationActive ? 'ACTIVE (ON)' : 'CLOSED (OFF)'}
+              </strong>
+              . Toggle this switch to open or close the public `/register` form.
+            </p>
+          </div>
+
+          <button
+            onClick={handleToggleRegistration}
+            disabled={toggleLoading}
+            className={`inline-flex items-center space-x-3 px-6 py-3 rounded-xl text-xs font-heading font-bold text-white transition-all shadow-lg ${
+              isRegistrationActive
+                ? 'bg-accentGreen hover:bg-accentGreen-hover shadow-green-glow'
+                : 'bg-saffron hover:bg-saffron-hover shadow-saffron-glow'
+            }`}
+          >
+            {toggleLoading ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : isRegistrationActive ? (
+              <ToggleRight className="w-6 h-6" />
+            ) : (
+              <ToggleLeft className="w-6 h-6" />
+            )}
+            <span>{isRegistrationActive ? 'REGISTRATION IS ON (Click to Close)' : 'REGISTRATION IS OFF (Click to Open)'}</span>
           </button>
         </div>
       </div>

@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { User, Mail, Phone, Upload, CheckCircle2, AlertCircle, Send, RefreshCw, FileText, ExternalLink, ShieldCheck, Sparkles, Lock } from 'lucide-react';
+import ProblemStatementSelect, { ProblemStatementOption } from '@/components/ProblemStatementSelect';
+import { User, Mail, Phone, Upload, CheckCircle2, AlertCircle, Send, RefreshCw, Lock, Sparkles, ExternalLink, ShieldCheck, Clock } from 'lucide-react';
 
 interface MemberFormState {
   name: string;
@@ -20,6 +21,11 @@ const INITIAL_MEMBER: MemberFormState = {
 };
 
 export default function RegisterPage() {
+  // Config Status Guard State
+  const [configLoading, setConfigLoading] = useState(true);
+  const [isRegistrationActive, setIsRegistrationActive] = useState(false);
+
+  // Form Fields
   const [teamName, setTeamName] = useState('');
   const [problemStatementTitle, setProblemStatementTitle] = useState('');
   const [problemStatementId, setProblemStatementId] = useState('');
@@ -46,6 +52,28 @@ export default function RegisterPage() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [successResponse, setSuccessResponse] = useState<{ message: string; teamId: string } | null>(null);
 
+  // Check Registration Active Status on Initial Load
+  useEffect(() => {
+    fetchRegistrationStatus();
+  }, []);
+
+  const fetchRegistrationStatus = async () => {
+    setConfigLoading(true);
+    try {
+      const res = await fetch('/api/config/registration-status');
+      if (res.ok) {
+        const data = await res.json();
+        setIsRegistrationActive(data.isRegistrationActive);
+      } else {
+        setIsRegistrationActive(false);
+      }
+    } catch (err) {
+      setIsRegistrationActive(false);
+    } finally {
+      setConfigLoading(false);
+    }
+  };
+
   // Helper to update member
   const updateMember = (index: number, field: keyof MemberFormState, value: string) => {
     const updated = [...members];
@@ -53,7 +81,13 @@ export default function RegisterPage() {
     setMembers(updated);
   };
 
-  // Handle File Selection with client-side validation
+  // Handle PS Selection from Dropdown
+  const handlePsSelect = (ps: ProblemStatementOption) => {
+    setProblemStatementId(ps.psCode);
+    setProblemStatementTitle(ps.title);
+  };
+
+  // Handle File Selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFileError(null);
     const file = e.target.files?.[0];
@@ -121,7 +155,7 @@ export default function RegisterPage() {
     const uniqueEmails = new Set(allEmails);
     const noDuplicateEmails = allEmails.length === 6 && uniqueEmails.size === 6;
 
-    // File Uploaded & Valid
+    // File Uploaded
     const fileValid = pptFile !== null && fileError === null;
 
     const canSubmit =
@@ -215,6 +249,69 @@ export default function RegisterPage() {
     setSuccessResponse(null);
   };
 
+  // 1. Loading State
+  if (configLoading) {
+    return (
+      <main className="min-h-screen bg-background text-slate-100 relative flex flex-col justify-between">
+        <Navbar />
+        <div className="py-24 text-center font-mono text-slate-400 space-y-3">
+          <RefreshCw className="w-8 h-8 animate-spin text-saffron mx-auto" />
+          <p>Verifying Registration Status...</p>
+        </div>
+        <Footer />
+      </main>
+    );
+  }
+
+  // 2. Registrations Closed Guard Screen
+  if (!isRegistrationActive) {
+    return (
+      <main className="min-h-screen bg-background text-slate-100 relative flex flex-col justify-between">
+        <Navbar />
+
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-20 text-center space-y-6">
+          <div className="w-20 h-20 rounded-3xl bg-saffron/15 border border-saffron/40 flex items-center justify-center text-saffron mx-auto shadow-saffron-glow">
+            <Lock className="w-10 h-10" />
+          </div>
+
+          <div className="space-y-2">
+            <span className="px-3.5 py-1 text-xs font-mono font-bold uppercase tracking-widest rounded-full bg-saffron/20 text-saffron border border-saffron/40">
+              System Notice
+            </span>
+            <h1 className="text-3xl sm:text-5xl font-heading font-extrabold text-white">
+              Registrations Currently Closed
+            </h1>
+            <p className="text-sm sm:text-base text-slate-300 max-w-lg mx-auto font-sans leading-relaxed">
+              Student team registration for SIH 2026 Internal Round at IET DSMNRU is currently closed by college administration.
+            </p>
+          </div>
+
+          <div className="p-6 rounded-2xl glass-panel border border-surface-border text-left max-w-lg mx-auto space-y-3">
+            <div className="flex items-center space-x-2 text-xs font-mono text-slate-300">
+              <Clock className="w-4 h-4 text-saffron" />
+              <span>Registration Status: <strong>OFF / Closed</strong></span>
+            </div>
+            <p className="text-xs text-slate-400 font-mono">
+              Please contact SPOC Ms. Shalini Raghuvanshi or Student Coordinator Ayush Chaurasiya for schedule announcements.
+            </p>
+          </div>
+
+          <div>
+            <a
+              href="/details"
+              className="inline-flex items-center space-x-2 px-6 py-3 rounded-xl bg-surface-light border border-surface-border text-xs font-mono font-bold text-white hover:bg-surface-border transition-colors"
+            >
+              <span>View Event Details & Guidelines →</span>
+            </a>
+          </div>
+        </div>
+
+        <Footer />
+      </main>
+    );
+  }
+
+  // 3. Active Registration Form Screen
   return (
     <main className="min-h-screen bg-background text-slate-100 relative">
       <Navbar />
@@ -299,7 +396,7 @@ export default function RegisterPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
                 <div className="flex items-center space-x-2 p-2.5 rounded-xl bg-surface-light/60 border border-surface-border">
                   {checklist.metaValid ? <CheckCircle2 className="w-4 h-4 text-accentGreen shrink-0" /> : <AlertCircle className="w-4 h-4 text-slate-500 shrink-0" />}
-                  <span className="text-slate-200">Team & PS ID</span>
+                  <span className="text-slate-200">Team & PS Selected</span>
                 </div>
 
                 <div className="flex items-center space-x-2 p-2.5 rounded-xl bg-surface-light/60 border border-surface-border">
@@ -335,12 +432,12 @@ export default function RegisterPage() {
               <div className="border-b border-surface-border pb-3">
                 <h2 className="text-lg font-heading font-bold text-white flex items-center space-x-2">
                   <span className="w-6 h-6 rounded-full bg-saffron text-white text-xs flex items-center justify-center font-mono font-bold">1</span>
-                  <span>Team & Problem Statement Info</span>
+                  <span>Team & Problem Statement Selection</span>
                 </h2>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <div className="sm:col-span-1">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-1">
                   <label className="block text-xs font-mono font-semibold text-slate-300 uppercase mb-2">
                     Team Name <span className="text-saffron">*</span>
                   </label>
@@ -354,31 +451,11 @@ export default function RegisterPage() {
                   />
                 </div>
 
-                <div className="sm:col-span-1">
-                  <label className="block text-xs font-mono font-semibold text-slate-300 uppercase mb-2">
-                    Problem Statement ID <span className="text-saffron">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. SIH1721"
-                    value={problemStatementId}
-                    onChange={(e) => setProblemStatementId(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-surface-border text-white text-sm focus:outline-none focus:border-saffron"
-                  />
-                </div>
-
-                <div className="sm:col-span-1">
-                  <label className="block text-xs font-mono font-semibold text-slate-300 uppercase mb-2">
-                    Problem Statement Title <span className="text-saffron">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Brief PS Title"
-                    value={problemStatementTitle}
-                    onChange={(e) => setProblemStatementTitle(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-navy-900 border border-surface-border text-white text-sm focus:outline-none focus:border-saffron"
+                {/* Dropdown Selector */}
+                <div className="md:col-span-2">
+                  <ProblemStatementSelect
+                    selectedPsCode={problemStatementId}
+                    onSelect={handlePsSelect}
                   />
                 </div>
               </div>
@@ -430,12 +507,12 @@ export default function RegisterPage() {
 
                 <div>
                   <label className="block text-[11px] font-mono text-slate-300 uppercase mb-1">
-                    University Email <span className="text-saffron">*</span>
+                    Email Address (Gmail / Any Email) <span className="text-saffron">*</span>
                   </label>
                   <input
                     type="email"
                     required
-                    placeholder="leader@dsmnru.ac.in"
+                    placeholder="leader@gmail.com"
                     value={leader.email}
                     onChange={(e) => setLeader({ ...leader, email: e.target.value })}
                     className="w-full px-3.5 py-2.5 rounded-lg bg-navy-900 border border-surface-border text-white text-xs focus:outline-none focus:border-saffron"
@@ -512,12 +589,12 @@ export default function RegisterPage() {
 
                     <div>
                       <label className="block text-[11px] font-mono text-slate-300 uppercase mb-1">
-                        Email Address <span className="text-saffron">*</span>
+                        Email Address (Gmail / Any Email) <span className="text-saffron">*</span>
                       </label>
                       <input
                         type="email"
                         required
-                        placeholder="member@dsmnru.ac.in"
+                        placeholder="member@gmail.com"
                         value={m.email}
                         onChange={(e) => updateMember(index, 'email', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg bg-navy-900 border border-surface-border text-white text-xs focus:outline-none focus:border-saffron"
@@ -580,11 +657,6 @@ export default function RegisterPage() {
                     <span>{fileError}</span>
                   </p>
                 )}
-
-                <div className="mt-3 p-3 rounded-xl bg-navy-900/60 border border-surface-border text-[11px] font-mono text-slate-400 flex items-center space-x-2">
-                  <Lock className="w-4 h-4 text-accentGreen shrink-0" />
-                  <span>Your file is uploaded directly to college admin storage. No student can view or delete your presentation.</span>
-                </div>
               </div>
             </div>
 
@@ -625,7 +697,7 @@ export default function RegisterPage() {
                 {submitting ? (
                   <>
                     <RefreshCw className="w-5 h-5 animate-spin" />
-                    <span>Uploading File & Processing Submission...</span>
+                    <span>Processing Submission...</span>
                   </>
                 ) : (
                   <>

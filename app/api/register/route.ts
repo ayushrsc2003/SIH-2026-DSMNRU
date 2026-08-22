@@ -17,6 +17,20 @@ function generateHumanTeamId(): string {
 
 export async function POST(req: Request) {
   try {
+    // 0. Check System Registration Status
+    const systemConfig = await prisma.systemConfig.findUnique({
+      where: { id: 'config' },
+    });
+
+    const isRegistrationActive = systemConfig ? systemConfig.isRegistrationActive : false;
+
+    if (!isRegistrationActive) {
+      return NextResponse.json(
+        { error: 'Registration is currently closed by college administration.' },
+        { status: 403 }
+      );
+    }
+
     const formData = await req.formData();
 
     const teamName = (formData.get('teamName') as string || '').trim();
@@ -94,7 +108,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // 3. Email & Phone Format Validation
+    // 3. General Email Format Validation (Allows Gmail, Yahoo, College Email, etc.)
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const phoneRegex = /^[0-9]{10}$/;
 
@@ -125,7 +139,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // 4. STRICT ONE USER = ONE SUBMISSION ENFORCEMENT
+    // 4. Single Submission Per Email Check
     const existingMembers = await prisma.member.findMany({
       where: {
         email: { in: allEmails },
@@ -158,15 +172,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // 6. PPT Upload or Google Drive Link Handling
+    // 6. PPT File Upload Handling (.pdf, .ppt, .pptx only, Max 5MB)
     const pptFile = formData.get('pptFile') as File | null;
     let pptUrl = '';
     let pptFileName = '';
 
-    if (googleDriveLink) {
-      pptUrl = googleDriveLink;
-      pptFileName = 'Google Drive Shared Presentation';
-    } else if (pptFile && typeof pptFile.name === 'string' && pptFile.size > 0) {
+    if (pptFile && typeof pptFile.name === 'string' && pptFile.size > 0) {
       const maxSizeBytes = 5 * 1024 * 1024;
       if (pptFile.size > maxSizeBytes) {
         return NextResponse.json(
@@ -196,9 +207,12 @@ export async function POST(req: Request) {
       const arrayBuffer = await pptFile.arrayBuffer();
       fs.writeFileSync(pptFilePath, Buffer.from(arrayBuffer));
       pptUrl = `/storage/uploads/${pptFileName}`;
+    } else if (googleDriveLink) {
+      pptUrl = googleDriveLink;
+      pptFileName = 'Google Drive Link';
     } else {
       return NextResponse.json(
-        { error: 'Please either upload your PPT/PDF file (under 5MB) or provide a Google Drive share link.' },
+        { error: 'Please upload your idea presentation file (.pdf, .ppt, .pptx under 5MB).' },
         { status: 400 }
       );
     }
@@ -222,7 +236,7 @@ export async function POST(req: Request) {
       })),
     });
 
-    // 8. Save Record in Database via Atomic Transaction
+    // 8. Save Record in Database
     const teamId = generateHumanTeamId();
 
     const createdTeam = await prisma.team.create({
@@ -260,7 +274,7 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         success: true,
-        message: `Registration submitted successfully for Team "${createdTeam.teamName}"! Single form submission lock applied for all 6 member email addresses.`,
+        message: `Registration submitted successfully for Team "${createdTeam.teamName}"!`,
         teamId: createdTeam.teamId,
       },
       { status: 201 }

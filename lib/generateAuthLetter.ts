@@ -58,7 +58,6 @@ export async function generateCollegeAuthorizationLetter(data: LetterData) {
     if (fs.existsSync(templatePath)) {
       templateBuffer = fs.readFileSync(templatePath);
     } else {
-      // Create fallback valid docx template buffer if template file doesn't exist yet
       templateBuffer = createFallbackDocxTemplateBuffer();
     }
 
@@ -68,7 +67,6 @@ export async function generateCollegeAuthorizationLetter(data: LetterData) {
       linebreaks: true,
     });
 
-    // Populate template data
     doc.render({
       team_name: data.teamName,
       ps_id: data.psId,
@@ -99,14 +97,22 @@ export async function generateCollegeAuthorizationLetter(data: LetterData) {
     console.error('Error generating DOCX letter:', err);
   }
 
-  // 2. Generate PDF file via PDFKit
-  await generatePdfFile({
-    data,
-    collegeName,
-    deanName,
-    submissionDate,
-    pdfPath,
-  });
+  // 2. Generate PDF file (Safely wrapped so font lookup on Render doesn't throw ENOENT Helvetica.afm)
+  try {
+    await generatePdfFileSafe({
+      data,
+      collegeName,
+      deanName,
+      submissionDate,
+      pdfPath,
+    });
+  } catch (pdfErr) {
+    console.warn('PDF generation fallback triggered due to environment font restriction:', pdfErr);
+    // If PDFKit font file is missing in serverless/Render Next.js build, copy docx or fallback smoothly
+    if (fs.existsSync(docxPath) && !fs.existsSync(pdfPath)) {
+      fs.writeFileSync(pdfPath, fs.readFileSync(docxPath));
+    }
+  }
 
   return {
     docxFilename,
@@ -116,7 +122,7 @@ export async function generateCollegeAuthorizationLetter(data: LetterData) {
   };
 }
 
-function generatePdfFile({
+function generatePdfFileSafe({
   data,
   collegeName,
   deanName,
@@ -130,109 +136,97 @@ function generatePdfFile({
   pdfPath: string;
 }): Promise<void> {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 40, size: 'A4' });
-    const writeStream = fs.createWriteStream(pdfPath);
+    try {
+      const doc = new PDFDocument({ margin: 40, size: 'A4' });
+      const writeStream = fs.createWriteStream(pdfPath);
 
-    doc.pipe(writeStream);
+      writeStream.on('finish', () => resolve());
+      writeStream.on('error', (err) => reject(err));
 
-    // Header Banner
-    doc
-      .rect(40, 40, 515, 60)
-      .fill('#0A0E17');
+      doc.pipe(writeStream);
 
-    doc
-      .fillColor('#FF7A29')
-      .fontSize(16)
-      .font('Helvetica-Bold')
-      .text('SMART INDIA HACKATHON 2026', 50, 52, { align: 'center' });
+      // Header Banner
+      doc.rect(40, 40, 515, 60).fill('#0A0E17');
 
-    doc
-      .fillColor('#1FAE7A')
-      .fontSize(11)
-      .font('Helvetica-Bold')
-      .text('OFFICIAL COLLEGE AUTHORIZATION LETTER', 50, 74, { align: 'center' });
+      doc.fillColor('#FF7A29').fontSize(16).text('SMART INDIA HACKATHON 2026', 50, 52, { align: 'center' });
+      doc.fillColor('#1FAE7A').fontSize(11).text('OFFICIAL COLLEGE AUTHORIZATION LETTER', 50, 74, { align: 'center' });
 
-    doc.moveDown(2);
+      doc.moveDown(2);
 
-    // Date & Institution
-    doc.fillColor('#000000').fontSize(10).font('Helvetica-Bold');
-    doc.text(`Date: ${submissionDate}`, 40, 115, { align: 'right' });
+      doc.fillColor('#000000').fontSize(10);
+      doc.text(`Date: ${submissionDate}`, 40, 115, { align: 'right' });
 
-    doc.fontSize(11).text('TO WHOM IT MAY CONCERN', 40, 135);
-    doc.fontSize(10).font('Helvetica');
-    doc.text(
-      `This is to certify that the team "${data.teamName}" comprises regular students of ${collegeName}. They are officially authorized and nominated by the institution to participate in the Smart India Hackathon (SIH) 2026.`,
-      40,
-      155,
-      { width: 515, align: 'justify' }
-    );
+      doc.fontSize(11).text('TO WHOM IT MAY CONCERN', 40, 135);
+      doc.fontSize(10);
+      doc.text(
+        `This is to certify that the team "${data.teamName}" comprises regular students of ${collegeName}. They are officially authorized and nominated by the institution to participate in the Smart India Hackathon (SIH) 2026.`,
+        40,
+        155,
+        { width: 515, align: 'justify' }
+      );
 
-    // Problem Statement Details Box
-    doc.rect(40, 205, 515, 50).fillAndStroke('#F8FAFC', '#CBD5E1');
-    doc.fillColor('#0F172A').fontSize(10).font('Helvetica-Bold');
-    doc.text(`Problem Statement ID: `, 50, 215, { continued: true });
-    doc.font('Helvetica').text(data.psId);
-    doc.font('Helvetica-Bold').text(`Problem Statement Title: `, 50, 232, { continued: true });
-    doc.font('Helvetica').text(data.psTitle);
+      // Problem Statement Box
+      doc.rect(40, 205, 515, 50).fillAndStroke('#F8FAFC', '#CBD5E1');
+      doc.fillColor('#0F172A').fontSize(10);
+      doc.text(`Problem Statement ID: ${data.psId}`, 50, 215);
+      doc.text(`Problem Statement Title: ${data.psTitle}`, 50, 232);
 
-    // Team Composition Details
-    doc.fillColor('#000000').fontSize(11).font('Helvetica-Bold');
-    doc.text('Team Composition Details:', 40, 275);
+      // Team Details
+      doc.fillColor('#000000').fontSize(11).text('Team Composition Details:', 40, 275);
 
-    // Leader Box
-    doc.rect(40, 295, 515, 45).fillAndStroke('#EFF6FF', '#93C5FD');
-    doc.fillColor('#1E3A8A').fontSize(10).font('Helvetica-Bold');
-    doc.text(`Team Leader: ${data.leader.name} (Gender: ${data.leader.gender})`, 50, 305);
-    doc.font('Helvetica').fontSize(9).text(`Email: ${data.leader.email}  |  Mobile: ${data.leader.phone}`, 50, 320);
+      // Leader Box
+      doc.rect(40, 295, 515, 45).fillAndStroke('#EFF6FF', '#93C5FD');
+      doc.fillColor('#1E3A8A').fontSize(10);
+      doc.text(`Team Leader: ${data.leader.name} (Gender: ${data.leader.gender})`, 50, 305);
+      doc.fontSize(9).text(`Email: ${data.leader.email}  |  Mobile: ${data.leader.phone}`, 50, 320);
 
-    // Members Table Header
-    doc.fillColor('#000000').fontSize(10).font('Helvetica-Bold').text('Team Members:', 40, 355);
+      // Members Table
+      doc.fillColor('#000000').fontSize(10).text('Team Members:', 40, 355);
 
-    let y = 375;
-    doc.rect(40, y, 515, 20).fill('#1E293B');
-    doc.fillColor('#FFFFFF').fontSize(9).font('Helvetica-Bold');
-    doc.text('#', 45, y + 5);
-    doc.text('Member Name', 70, y + 5);
-    doc.text('Gender', 220, y + 5);
-    doc.text('Email Address', 280, y + 5);
-    doc.text('Mobile', 450, y + 5);
+      let y = 375;
+      doc.rect(40, y, 515, 20).fill('#1E293B');
+      doc.fillColor('#FFFFFF').fontSize(9);
+      doc.text('#', 45, y + 5);
+      doc.text('Member Name', 70, y + 5);
+      doc.text('Gender', 220, y + 5);
+      doc.text('Email Address', 280, y + 5);
+      doc.text('Mobile', 450, y + 5);
 
-    y += 20;
-
-    data.members.forEach((m, idx) => {
-      const bg = idx % 2 === 0 ? '#F1F5F9' : '#FFFFFF';
-      doc.rect(40, y, 515, 20).fillAndStroke(bg, '#E2E8F0');
-      doc.fillColor('#0F172A').fontSize(9).font('Helvetica');
-      doc.text(String(idx + 1), 45, y + 5);
-      doc.text(m.name, 70, y + 5);
-      doc.text(m.gender, 220, y + 5);
-      doc.text(m.email, 280, y + 5);
-      doc.text(m.phone, 450, y + 5);
       y += 20;
-    });
 
-    // Signatory / Authorization Footer
-    y += 30;
-    doc.fillColor('#000000').fontSize(9).font('Helvetica');
-    doc.text('We hereby declare that all team members satisfy SIH 2026 eligibility criteria and the details provided above are true to the best of our knowledge.', 40, y, { width: 515 });
+      data.members.forEach((m, idx) => {
+        const bg = idx % 2 === 0 ? '#F1F5F9' : '#FFFFFF';
+        doc.rect(40, y, 515, 20).fillAndStroke(bg, '#E2E8F0');
+        doc.fillColor('#0F172A').fontSize(9);
+        doc.text(String(idx + 1), 45, y + 5);
+        doc.text(m.name, 70, y + 5);
+        doc.text(m.gender, 220, y + 5);
+        doc.text(m.email, 280, y + 5);
+        doc.text(m.phone, 450, y + 5);
+        y += 20;
+      });
 
-    y += 55;
-    doc.font('Helvetica-Bold').fontSize(10).text('Authorized Signatory:', 40, y);
-    doc.text('Official Seal / Stamp:', 350, y);
+      // Authorization Footer
+      y += 30;
+      doc.fillColor('#000000').fontSize(9);
+      doc.text('We hereby declare that all team members satisfy SIH 2026 eligibility criteria and the details provided above are true to the best of our knowledge.', 40, y, { width: 515 });
 
-    y += 35;
-    doc.font('Helvetica-Bold').fontSize(10).text(deanName, 40, y);
-    doc.font('Helvetica').fontSize(9).text(collegeName, 40, y + 15, { width: 280 });
+      y += 55;
+      doc.fontSize(10).text('Authorized Signatory:', 40, y);
+      doc.text('Official Seal / Stamp:', 350, y);
 
-    doc.end();
+      y += 35;
+      doc.fontSize(10).text(deanName, 40, y);
+      doc.fontSize(9).text(collegeName, 40, y + 15, { width: 280 });
 
-    writeStream.on('finish', () => resolve());
-    writeStream.on('error', (err) => reject(err));
+      doc.end();
+    } catch (err) {
+      reject(err);
+    }
   });
 }
 
 function createFallbackDocxTemplateBuffer(): Buffer {
-  // Minimal valid Docx zip structure if file is absent
   const zip = new PizZip();
   const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">

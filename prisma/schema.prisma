@@ -9,6 +9,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model SystemConfig {
+  id                   String   @id @default("config")
+  isRegistrationActive Boolean  @default(false)
+  updatedAt            DateTime @updatedAt
+}
+
 model Team {
   id                    String   @id @default(cuid())
   teamId                String   @unique

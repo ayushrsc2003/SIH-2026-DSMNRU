@@ -1,0 +1,50 @@
+[
+  {
+    "psCode": "SIH1601",
+    "title": "AI-Driven Accessible Learning Assistant for Differently-Abled University Students",
+    "category": "Software",
+    "domain": "Smart Education"
+  },
+  {
+    "psCode": "SIH1608",
+    "title": "Decentralized Blockchain Academic Credential & Certificate Verification Platform",
+    "category": "Software",
+    "domain": "Cyber Security & Blockchain"
+  },
+  {
+    "psCode": "SIH1721",
+    "title": "Smart Assistive Gesture and Speech Parser for Hearing and Visually Impaired Individuals",
+    "category": "Hardware",
+    "domain": "Assistive Technology"
+  },
+  {
+    "psCode": "SIH1289",
+    "title": "Neural Signal Emotion-to-Speech Communication Interface for Non-Verbal Speech",
+    "category": "Software",
+    "domain": "MedTech / Healthcare"
+  },
+  {
+    "psCode": "SIH1450",
+    "title": "Autonomous Crop Disease Detection and Precision Fertilizer Spraying Drone System",
+    "category": "Hardware",
+    "domain": "Robotics & Drones"
+  },
+  {
+    "psCode": "SIH1512",
+    "title": "IoT-Based Real-Time Microgrid Energy Monitoring & Fault Prediction for Campus Infrastructure",
+    "category": "Hardware",
+    "domain": "Renewable Energy & Clean Tech"
+  },
+  {
+    "psCode": "SIH1890",
+    "title": "AI-Powered Smart Traffic Signal Control & Emergency Ambulance Green Corridor System",
+    "category": "Software",
+    "domain": "Smart Vehicles & Transportation"
+  },
+  {
+    "psCode": "SIH1999",
+    "title": "Open Innovation - Student Driven Novel Hardware or Software Problem Statement",
+    "category": "Software",
+    "domain": "Open Innovation"
+  }
+]
