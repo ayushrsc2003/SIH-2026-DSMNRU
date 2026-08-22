@@ -39,6 +39,7 @@ export async function GET(req: Request) {
         leaderEmail: leader?.email || 'N/A',
         leaderMobile: leader?.phone || 'N/A',
         memberCount: team.members.length,
+        hasPresentation: !!team.pptUrl,
         hasAuthDocx: !!team.authDocxPath,
         hasAuthPdf: !!team.authPdfPath,
         createdAt: team.createdAt,

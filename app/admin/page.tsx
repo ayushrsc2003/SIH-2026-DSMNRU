@@ -13,6 +13,7 @@ interface SubmissionRecord {
   leaderEmail: string;
   leaderMobile: string;
   memberCount: number;
+  hasPresentation: boolean;
   hasAuthDocx: boolean;
   hasAuthPdf: boolean;
   createdAt: string;
@@ -110,6 +111,10 @@ export default function AdminPage() {
 
   const handleDownloadLetter = (id: string, type: 'pdf' | 'docx') => {
     window.open(`/api/admin/letters/${id}/download?type=${type}&token=${encodeURIComponent(adminTokenInput)}`, '_blank');
+  };
+
+  const handleDownloadPresentation = (id: string) => {
+    window.open(`/api/admin/teams/${id}/ppt?token=${encodeURIComponent(adminTokenInput)}`, '_blank');
   };
 
   const handleExportCsv = async () => {
@@ -312,7 +317,7 @@ export default function AdminPage() {
                   <th className="p-4">Problem Statement</th>
                   <th className="p-4">Team Leader Info</th>
                   <th className="p-4">Date</th>
-                  <th className="p-4 text-right">Admin Authorization Actions</th>
+                  <th className="p-4 text-right">Admin File Downloads</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-border">
@@ -346,6 +351,16 @@ export default function AdminPage() {
                       </td>
 
                       <td className="p-4 text-right space-x-2">
+                        {sub.hasPresentation && (
+                          <button
+                            onClick={() => handleDownloadPresentation(sub.id)}
+                            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-violet-500/20 hover:bg-violet-500/30 text-violet-200 border border-violet-500/40 text-xs font-mono font-bold transition-colors"
+                            title="Download the team's uploaded presentation"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            <span>View PPT</span>
+                          </button>
+                        )}
                         <button
                           onClick={() => handleDownloadLetter(sub.id, 'pdf')}
                           className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 text-xs font-mono font-bold transition-colors"
