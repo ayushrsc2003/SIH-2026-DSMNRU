@@ -112,8 +112,29 @@ export default function AdminPage() {
     window.open(`/api/admin/letters/${id}/download?type=${type}&token=${encodeURIComponent(adminTokenInput)}`, '_blank');
   };
 
-  const handleExportCsv = () => {
-    window.open('/api/admin/export', '_blank');
+  const handleExportCsv = async () => {
+    try {
+      const response = await fetch('/api/admin/export', {
+        headers: { Authorization: `Bearer ${adminTokenInput.trim()}` },
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        alert(data.error || 'Unable to export the CSV file.');
+        return;
+      }
+
+      const file = await response.blob();
+      const url = URL.createObjectURL(file);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `SIH2026_DSMNRU_Teams_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('Network error while exporting the CSV file. Please try again.');
+    }
   };
 
   const filteredSubmissions = submissions.filter((item) => {

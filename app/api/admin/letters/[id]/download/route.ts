@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyAdminSession } from '@/lib/auth';
+import { generateCollegeAuthorizationLetter } from '@/lib/generateAuthLetter';
 import fs from 'fs';
 import path from 'path';
 
@@ -32,13 +33,53 @@ export async function GET(
 
     const team = await prisma.team.findUnique({
       where: { id: params.id },
+      include: { members: { orderBy: { isLeader: 'desc' } } },
     });
 
     if (!team) {
       return NextResponse.json({ error: 'Team submission record not found.' }, { status: 404 });
     }
 
-    const filePath = type === 'docx' ? team.authDocxPath : team.authPdfPath;
+    let filePath = type === 'docx' ? team.authDocxPath : team.authPdfPath;
+
+    // Older deployments could save DOCX bytes under a .pdf extension after a
+    // PDFKit failure. Regenerate that letter on demand instead of serving a
+    // corrupt file to the administrator.
+    const isValidPdf = (candidatePath: string | null) => {
+      if (!candidatePath || !fs.existsSync(candidatePath)) return false;
+      return fs.readFileSync(candidatePath, { encoding: null, flag: 'r' }).subarray(0, 5).toString() === '%PDF-';
+    };
+    if (type === 'pdf' && !isValidPdf(filePath)) {
+      const leader = team.members.find((member) => member.isLeader);
+      if (!leader) {
+        return NextResponse.json({ error: 'Cannot regenerate this letter because its team leader record is missing.' }, { status: 422 });
+      }
+
+      const regenerated = await generateCollegeAuthorizationLetter({
+        teamName: team.teamName,
+        psId: team.problemStatementId,
+        psTitle: team.problemStatementTitle,
+        leader: {
+          name: leader.name,
+          gender: leader.gender,
+          email: leader.email,
+          phone: leader.phone,
+        },
+        members: team.members
+          .filter((member) => !member.isLeader)
+          .map((member) => ({
+            name: member.name,
+            gender: member.gender,
+            email: member.email,
+            phone: member.phone,
+          })),
+      });
+      await prisma.team.update({
+        where: { id: team.id },
+        data: { authDocxPath: regenerated.docxPath, authPdfPath: regenerated.pdfPath },
+      });
+      filePath = regenerated.pdfPath;
+    }
 
     if (!filePath || !fs.existsSync(filePath)) {
       return NextResponse.json(
