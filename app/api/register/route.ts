@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { generateCollegeAuthorizationLetter } from '@/lib/generateAuthLetter';
+import sihProblemStatements from '@/data/sihProblemStatements.json';
 import fs from 'fs';
 import path from 'path';
 
@@ -17,6 +18,14 @@ function generateHumanTeamId(): string {
 
 export async function POST(req: Request) {
   try {
+    const registrationDeadline = new Date('2026-09-12T23:59:59+05:30');
+    if (new Date() > registrationDeadline) {
+      return NextResponse.json(
+        { error: 'Registration closed on 12 September 2026.' },
+        { status: 403 }
+      );
+    }
+
     // 0. Check System Registration Status
     const systemConfig = await prisma.systemConfig.findUnique({
       where: { id: 'config' },
@@ -72,6 +81,16 @@ export async function POST(req: Request) {
     if (!teamName || !problemStatementId || !problemStatementTitle) {
       return NextResponse.json(
         { error: 'Team Name, Problem Statement ID, and Problem Statement Title are required.' },
+        { status: 400 }
+      );
+    }
+
+    const officialProblemStatement = sihProblemStatements.find(
+      (statement) => statement.psCode === problemStatementId
+    );
+    if (!officialProblemStatement || officialProblemStatement.title !== problemStatementTitle) {
+      return NextResponse.json(
+        { error: 'Please select a valid SIH 2026 problem statement from the official list.' },
         { status: 400 }
       );
     }

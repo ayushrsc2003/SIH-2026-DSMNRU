@@ -8,8 +8,8 @@ export default function Timeline() {
     {
       step: '01',
       title: 'Registration Phase',
-      date: 'Active Now',
-      desc: 'Form your team of 6 members (min 1 female). Submit team details & mentor info on this portal.',
+      date: 'Closes 12 September 2026',
+      desc: 'Form your team of 6 members (min 1 female) and submit team details before the registration deadline.',
       status: 'Current Phase',
       active: true,
       icon: Code2,

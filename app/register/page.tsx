@@ -330,6 +330,11 @@ export default function RegisterPage() {
             Register your team (1 Leader + 5 Members). Generates official SIH 2026 College Authorization Letter automatically.
           </p>
 
+          <div className="mt-4 inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/40 text-red-200 text-sm font-heading font-bold">
+            <Clock className="w-4 h-4 text-red-400" />
+            <span>Registration closes on 12 September 2026</span>
+          </div>
+
           <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
             <span className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-accentGreen/10 border border-accentGreen/30 text-accentGreen text-xs font-mono">
               <Lock className="w-3.5 h-3.5" />

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Users, UserCheck, Trophy, MapPin, Award, ArrowRight, ShieldAlert, Sparkles } from 'lucide-react';
+import { Users, UserCheck, Trophy, MapPin, Award, ArrowRight, ShieldAlert, Sparkles, CalendarClock } from 'lucide-react';
 
 interface HeroProps {
   onOpenCheckStatus: () => void;
@@ -70,6 +70,11 @@ export default function Hero({ onOpenCheckStatus }: HeroProps) {
           <p className="mt-6 text-base sm:text-lg text-slate-300 max-w-2xl font-sans leading-relaxed">
             The official campus hackathon to innovate, build real-world solutions, and earn direct nomination to represent DSMNRU at the nationwide <strong className="text-white">SIH 2026 Grand Finale</strong>.
           </p>
+
+          <div className="mt-5 inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/40 text-red-200 shadow-lg">
+            <CalendarClock className="w-5 h-5 text-red-400 shrink-0" />
+            <span className="text-sm font-heading font-bold">Last date for team registration: 12 September 2026</span>
+          </div>
 
           {/* CTA Buttons */}
           <div className="mt-8 flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
