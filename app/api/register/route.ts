@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     if (existingMembers.length) return NextResponse.json({ error: 'One or more participant email addresses are already registered with another team.' }, { status: 409 });
 
     const authLetterUrl = await generateAuthorizationLetter({
-      collegeName: process.env.COLLEGE_NAME || 'Institute of Engineering & Technology (IET), Dr. Shakuntala Misra National Rehabilitation University, Lucknow',
+      collegeName: process.env.COLLEGE_NAME || 'Institute of Engineering & Technology (IET), Dr. Shakuntala Misra National Rehabilitation University, Lucknow (UGC AISHE: U-0512)',
       teamName, psCode, psTitle, category: officialProblemStatement.category,
       leaderName: participants[0].name, leaderGender: participants[0].gender, leaderEmail: participants[0].email, leaderPhone: participants[0].phone,
       leaderBranch: participants[0].branch || 'CSE', leaderYear: participants[0].year, deanName: process.env.DEAN_NAME || 'Principal / Dean',

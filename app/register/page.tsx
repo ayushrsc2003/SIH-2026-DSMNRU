@@ -341,13 +341,17 @@ export default function RegisterPage() {
           </div>
 
           <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            <span className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-300 text-xs font-mono">
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
+              <span>UGC Registration No: <strong>U-0512</strong> (DSMNRU)</span>
+            </span>
             <span className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-accentGreen/10 border border-accentGreen/30 text-accentGreen text-xs font-mono">
               <Lock className="w-3.5 h-3.5" />
-              <span>Private File Storage: Uploads Restricted to Admin Review</span>
+              <span>Private File Storage: Admin Review Only</span>
             </span>
             <span className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-saffron/10 border border-saffron/30 text-saffron text-xs font-mono">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Single Form Submission Per User Email</span>
+              <span>Single Form Submission Per User</span>
             </span>
           </div>
 
@@ -439,11 +443,25 @@ export default function RegisterPage() {
 
             {/* Step 1: Team & Problem Statement Info */}
             <div className="p-6 sm:p-8 rounded-2xl glass-panel border border-surface-border space-y-6">
-              <div className="border-b border-surface-border pb-3">
+              <div className="border-b border-surface-border pb-3 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-lg font-heading font-bold text-white flex items-center space-x-2">
                   <span className="w-6 h-6 rounded-full bg-saffron text-white text-xs flex items-center justify-center font-mono font-bold">1</span>
                   <span>Team & Problem Statement Selection</span>
                 </h2>
+                <span className="px-2.5 py-1 rounded-lg bg-surface-light border border-surface-border text-[11px] font-mono text-slate-300">
+                  UGC AISHE Code: <strong className="text-saffron">U-0512</strong>
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-navy-900/60 border border-surface-border/80 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+                <div className="text-slate-300">
+                  <span className="text-slate-400">Institutional Affiliation: </span>
+                  <span className="text-white font-semibold">IET, Dr. Shakuntala Misra National Rehabilitation University, Lucknow</span>
+                </div>
+                <div className="text-accentGreen flex items-center space-x-1.5 font-bold">
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>UGC Registered: U-0512</span>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
