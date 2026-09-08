@@ -254,6 +254,65 @@ export default function RegisterPage() {
     setSuccessResponse(null);
   };
 
+  const handleFillDemoData = () => {
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    setTeamName(`CodeInnovators_${randomSuffix}`);
+    setProblemStatementId('SIH1721');
+    setProblemStatementTitle('AI-Driven Accessible Learning Assistant for Differently-Abled Students');
+    setAcknowledged(true);
+    setLeader({
+      name: 'Ayush Chaurasiya',
+      gender: 'Male',
+      email: `achaurasiya_${randomSuffix}@dsmnru.ac.in`,
+      phone: '7838504972',
+      branch: 'CSE',
+      year: '2023-2027',
+    });
+    setMembers([
+      {
+        name: 'Ananya Verma',
+        gender: 'Female',
+        email: `ananya_${randomSuffix}@gmail.com`,
+        phone: '9876543211',
+        branch: 'CSE AIDS',
+        year: '2024-2028',
+      },
+      {
+        name: 'Rohan Gupta',
+        gender: 'Male',
+        email: `rohan_${randomSuffix}@gmail.com`,
+        phone: '9876543212',
+        branch: 'ECE',
+        year: '2023-2027',
+      },
+      {
+        name: 'Priya Srivastava',
+        gender: 'Female',
+        email: `priya_${randomSuffix}@gmail.com`,
+        phone: '9876543213',
+        branch: 'CSE AIFM',
+        year: '2025-2029',
+      },
+      {
+        name: 'Shivam Pandey',
+        gender: 'Male',
+        email: `shivam_${randomSuffix}@gmail.com`,
+        phone: '9876543214',
+        branch: 'ME',
+        year: '2024-2028',
+      },
+      {
+        name: 'Kavya Tripathi',
+        gender: 'Female',
+        email: `kavya_${randomSuffix}@gmail.com`,
+        phone: '9876543215',
+        branch: 'EE',
+        year: '2023-2027',
+      },
+    ]);
+    setServerError(null);
+  };
+
   // 1. Loading State
   if (configLoading) {
     return (
@@ -399,12 +458,18 @@ export default function RegisterPage() {
             
             {/* Live Compliance Checklist */}
             <div className="p-6 rounded-2xl glass-panel border border-saffron/30 shadow-saffron-glow">
-              <div className="flex items-center justify-between mb-4 border-b border-surface-border/60 pb-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4 border-b border-surface-border/60 pb-3">
                 <h3 className="text-xs sm:text-sm font-mono font-bold uppercase tracking-wider text-white flex items-center space-x-2">
                   <Sparkles className="w-4 h-4 text-saffron" />
                   <span>Submission Compliance Checklist</span>
                 </h3>
-                <span className="text-[11px] font-mono text-slate-400">Strict Validation</span>
+                <button
+                  type="button"
+                  onClick={handleFillDemoData}
+                  className="px-3 py-1.5 rounded-lg bg-saffron/20 border border-saffron/40 hover:bg-saffron/30 text-saffron font-mono text-xs font-bold transition-colors flex items-center space-x-1.5 cursor-pointer shadow-sm"
+                >
+                  <span>⚡ Auto-Fill Sample Test Data</span>
+                </button>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
