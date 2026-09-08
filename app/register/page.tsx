@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import ProblemStatementSelect, { ProblemStatementOption } from '@/components/ProblemStatementSelect';
+import { uploadPresentationToCloudinary } from '@/lib/uploadToCloudinary';
 import { User, Mail, Phone, Upload, CheckCircle2, AlertCircle, Send, RefreshCw, Lock, Sparkles, ExternalLink, ShieldCheck, Clock } from 'lucide-react';
 
 interface MemberFormState {
@@ -11,6 +12,7 @@ interface MemberFormState {
   gender: string;
   email: string;
   phone: string;
+  year: string;
 }
 
 const INITIAL_MEMBER: MemberFormState = {
@@ -18,6 +20,7 @@ const INITIAL_MEMBER: MemberFormState = {
   gender: '',
   email: '',
   phone: '',
+  year: '',
 };
 
 export default function RegisterPage() {
@@ -97,20 +100,20 @@ export default function RegisterPage() {
       return;
     }
 
-    const allowedExts = ['.pdf', '.ppt', '.pptx'];
+    const allowedExts = ['.ppt', '.pptx'];
     const fileNameLower = file.name.toLowerCase();
     const isAllowedExt = allowedExts.some((ext) => fileNameLower.endsWith(ext));
 
     if (!isAllowedExt) {
-      setFileError('Invalid file type! Only .pdf, .ppt, and .pptx files are allowed.');
+      setFileError('Invalid file type! Only .ppt and .pptx files are allowed.');
       setPptFile(null);
       return;
     }
 
-    const maxSizeBytes = 5 * 1024 * 1024;
+    const maxSizeBytes = 15 * 1024 * 1024;
     if (file.size > maxSizeBytes) {
       const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-      setFileError(`File size (${sizeMB} MB) exceeds maximum allowed limit of 5 MB.`);
+      setFileError(`File size (${sizeMB} MB) exceeds maximum allowed limit of 15 MB.`);
       setPptFile(null);
       return;
     }
@@ -134,7 +137,8 @@ export default function RegisterPage() {
       leader.name.trim() !== '' &&
       leader.gender !== '' &&
       emailRegex.test(leader.email.trim()) &&
-      phoneRegex.test(leader.phone.trim().replace(/\D/g, ''));
+      phoneRegex.test(leader.phone.trim().replace(/\D/g, '')) &&
+      leader.year !== '';
 
     // 5 Members Valid
     const membersValid = members.every(
@@ -142,7 +146,8 @@ export default function RegisterPage() {
         m.name.trim() !== '' &&
         m.gender !== '' &&
         emailRegex.test(m.email.trim()) &&
-        phoneRegex.test(m.phone.trim().replace(/\D/g, ''))
+        phoneRegex.test(m.phone.trim().replace(/\D/g, '')) &&
+        m.year !== ''
     );
 
     // Gender Diversity: At least 1 female across leader + 5 members
@@ -185,32 +190,28 @@ export default function RegisterPage() {
     setServerError(null);
 
     if (!checklist.canSubmit) {
-      setServerError('Please complete all required fields and upload your PPT/PDF file before submitting.');
+      setServerError('Please complete all required fields and upload your presentation before submitting.');
       return;
     }
 
     setSubmitting(true);
 
-    const formData = new FormData();
-    formData.append('teamName', teamName.trim());
-    formData.append('problemStatementTitle', problemStatementTitle.trim());
-    formData.append('problemStatementId', problemStatementId.trim());
-    formData.append('acknowledged', acknowledged ? 'true' : 'false');
-
-    formData.append('leaderName', leader.name.trim());
-    formData.append('leaderGender', leader.gender);
-    formData.append('leaderEmail', leader.email.trim().toLowerCase());
-    formData.append('leaderMobile', leader.phone.trim());
-
-    formData.append('members', JSON.stringify(members));
-    if (pptFile) {
-      formData.append('pptFile', pptFile);
-    }
-
     try {
+      if (!pptFile) throw new Error('Please select a presentation file.');
+      const uploadedPresentation = await uploadPresentationToCloudinary(pptFile);
       const res = await fetch('/api/register', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          teamName: teamName.trim(),
+          problemStatementTitle: problemStatementTitle.trim(),
+          problemStatementId: problemStatementId.trim(),
+          acknowledged,
+          leader: { ...leader, name: leader.name.trim(), email: leader.email.trim().toLowerCase(), phone: leader.phone.trim() },
+          members: members.map((member) => ({ ...member, name: member.name.trim(), email: member.email.trim().toLowerCase(), phone: member.phone.trim() })),
+          pptUrl: uploadedPresentation.pptUrl,
+          pptFileName: uploadedPresentation.fileName,
+        }),
       });
 
       const data = await res.json();
@@ -224,7 +225,7 @@ export default function RegisterPage() {
         });
       }
     } catch (err: any) {
-      setServerError('Network or server error occurred. Please try again.');
+      setServerError(err?.message || 'Network or server error occurred. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -478,7 +479,7 @@ export default function RegisterPage() {
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div>
                   <label className="block text-[11px] font-mono text-slate-300 uppercase mb-1">
                     Leader Name <span className="text-saffron">*</span>
@@ -537,6 +538,23 @@ export default function RegisterPage() {
                     className="w-full px-3.5 py-2.5 rounded-lg bg-navy-900 border border-surface-border text-white text-xs focus:outline-none focus:border-saffron"
                   />
                 </div>
+                <div>
+                  <label className="block text-[11px] font-mono text-slate-300 uppercase mb-1">
+                    Academic Year <span className="text-saffron">*</span>
+                  </label>
+                  <select
+                    required
+                    value={leader.year}
+                    onChange={(e) => setLeader({ ...leader, year: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-navy-900 border border-surface-border text-white text-xs focus:outline-none focus:border-saffron"
+                  >
+                    <option value="">-- Select --</option>
+                    <option value="2023-2027">2023-2027</option>
+                    <option value="2024-2028">2024-2028</option>
+                    <option value="2025-2029">2025-2029</option>
+                    <option value="2026-2030">2026-2030</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -560,7 +578,7 @@ export default function RegisterPage() {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                     <div>
                       <label className="block text-[11px] font-mono text-slate-300 uppercase mb-1">
                         Member Name <span className="text-saffron">*</span>
@@ -619,6 +637,23 @@ export default function RegisterPage() {
                         className="w-full px-3.5 py-2.5 rounded-lg bg-navy-900 border border-surface-border text-white text-xs focus:outline-none focus:border-saffron"
                       />
                     </div>
+                    <div>
+                      <label className="block text-[11px] font-mono text-slate-300 uppercase mb-1">
+                        Academic Year <span className="text-saffron">*</span>
+                      </label>
+                      <select
+                        required
+                        value={m.year}
+                        onChange={(e) => updateMember(index, 'year', e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-lg bg-navy-900 border border-surface-border text-white text-xs focus:outline-none focus:border-saffron"
+                      >
+                        <option value="">-- Select --</option>
+                        <option value="2023-2027">2023-2027</option>
+                        <option value="2024-2028">2024-2028</option>
+                        <option value="2025-2029">2025-2029</option>
+                        <option value="2026-2030">2026-2030</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -638,14 +673,14 @@ export default function RegisterPage() {
 
               <div>
                 <label className="block text-xs font-mono font-semibold text-slate-300 uppercase mb-2">
-                  Upload Idea File (.pdf, .ppt, .pptx only, Max 5 MB) <span className="text-saffron">*</span>
+                  Upload Idea File (.ppt, .pptx only, Max 15 MB) <span className="text-saffron">*</span>
                 </label>
                 
                 <div className="relative border-2 border-dashed border-surface-border hover:border-saffron rounded-2xl p-8 text-center transition-colors">
                   <input
                     type="file"
                     required
-                    accept=".pdf,.ppt,.pptx"
+                    accept=".ppt,.pptx"
                     onChange={handleFileChange}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                   />
@@ -653,7 +688,7 @@ export default function RegisterPage() {
                   <p className="text-sm font-heading font-bold text-white">
                     {pptFile ? `Selected: ${pptFile.name} (${(pptFile.size / (1024 * 1024)).toFixed(2)} MB)` : 'Click or Drag & Drop your presentation file here'}
                   </p>
-                  <p className="text-xs text-slate-400 font-mono mt-1">Allowed formats: .pdf, .ppt, .pptx (Maximum size: 5 MB)</p>
+                  <p className="text-xs text-slate-400 font-mono mt-1">Allowed formats: .ppt, .pptx (Maximum size: 15 MB)</p>
                 </div>
 
                 {fileError && (

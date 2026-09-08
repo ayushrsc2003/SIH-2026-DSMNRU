@@ -22,6 +22,10 @@ model Team {
   domain                String   @default("General Innovation")
   problemStatementId    String   @default("SIH1721")
   problemStatementTitle String
+  category              String   @default("Software")
+  leaderName            String?
+  leaderEmail           String?
+  leaderPhone           String?
   ideaSummary           String   @default("See attached PPT file")
   mentorName            String   @default("Assigned Faculty Mentor")
   mentorDept            String   @default("Computer Science & Engineering")
@@ -30,6 +34,7 @@ model Team {
   googleDriveLink       String?  
   authDocxPath          String?  
   authPdfPath           String?  
+  authLetterUrl         String?
   createdAt             DateTime @default(now())
 
   members Member[]

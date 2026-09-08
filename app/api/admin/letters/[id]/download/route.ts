@@ -41,6 +41,10 @@ export async function GET(
       return NextResponse.json({ error: 'Team submission record not found.' }, { status: 404 });
     }
 
+    if (type === 'docx' && team.authLetterUrl) {
+      return NextResponse.redirect(team.authLetterUrl);
+    }
+
     let filePath = type === 'docx' ? team.authDocxPath : team.authPdfPath;
 
     // Older deployments could save DOCX bytes under a .pdf extension after a
