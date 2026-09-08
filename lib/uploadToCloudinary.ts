@@ -4,7 +4,7 @@ export interface CloudinaryUploadResult {
   fileName: string;
 }
 
-const MAX_PRESENTATION_BYTES = 15 * 1024 * 1024;
+const MAX_PRESENTATION_BYTES = 10 * 1024 * 1024;
 
 export async function uploadPresentationToCloudinary(file: File): Promise<CloudinaryUploadResult> {
   const extension = file.name.split('.').pop()?.toLowerCase();
@@ -12,7 +12,7 @@ export async function uploadPresentationToCloudinary(file: File): Promise<Cloudi
     throw new Error('Only .ppt and .pptx presentation files are allowed.');
   }
   if (file.size === 0 || file.size > MAX_PRESENTATION_BYTES) {
-    throw new Error('The presentation file must be no larger than 15 MB.');
+    throw new Error('The presentation file must be no larger than 10 MB. Please compress your presentation.');
   }
 
   // 1. Try client-side signed upload to Cloudinary

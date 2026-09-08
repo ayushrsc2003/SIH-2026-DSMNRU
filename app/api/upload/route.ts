@@ -19,6 +19,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Only .ppt and .pptx files are allowed.' }, { status: 400 });
     }
 
+    if (file.size > 10 * 1024 * 1024) {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      return NextResponse.json({ error: `File size (${sizeMB} MB) exceeds Cloudinary 10 MB limit. Please compress images in your PPT and try again.` }, { status: 400 });
+    }
+
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 

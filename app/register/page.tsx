@@ -112,10 +112,10 @@ export default function RegisterPage() {
       return;
     }
 
-    const maxSizeBytes = 15 * 1024 * 1024;
+    const maxSizeBytes = 10 * 1024 * 1024;
     if (file.size > maxSizeBytes) {
       const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-      setFileError(`File size (${sizeMB} MB) exceeds maximum allowed limit of 15 MB.`);
+      setFileError(`File size (${sizeMB} MB) exceeds maximum allowed limit of 10 MB. Please compress the PPT file.`);
       setPptFile(null);
       return;
     }
@@ -490,7 +490,7 @@ export default function RegisterPage() {
 
                 <div className="flex items-center space-x-2 p-2.5 rounded-xl bg-surface-light/60 border border-surface-border">
                   {checklist.fileValid ? <CheckCircle2 className="w-4 h-4 text-accentGreen shrink-0" /> : <AlertCircle className="w-4 h-4 text-slate-500 shrink-0" />}
-                  <span className="text-slate-200">PPT &lt; 5MB Uploaded</span>
+                  <span className="text-slate-200">PPT &le; 10MB Uploaded</span>
                 </div>
               </div>
             </div>
@@ -804,7 +804,7 @@ export default function RegisterPage() {
 
               <div>
                 <label className="block text-xs font-mono font-semibold text-slate-300 uppercase mb-2">
-                  Upload Idea File (.ppt, .pptx only, Max 15 MB) <span className="text-saffron">*</span>
+                  Upload Idea File (.ppt, .pptx only, Max 10 MB) <span className="text-saffron">*</span>
                 </label>
                 
                 <div className="relative border-2 border-dashed border-surface-border hover:border-saffron rounded-2xl p-8 text-center transition-colors">
@@ -819,7 +819,7 @@ export default function RegisterPage() {
                   <p className="text-sm font-heading font-bold text-white">
                     {pptFile ? `Selected: ${pptFile.name} (${(pptFile.size / (1024 * 1024)).toFixed(2)} MB)` : 'Click or Drag & Drop your presentation file here'}
                   </p>
-                  <p className="text-xs text-slate-400 font-mono mt-1">Allowed formats: .ppt, .pptx (Maximum size: 15 MB)</p>
+                  <p className="text-xs text-slate-400 font-mono mt-1">Allowed formats: .ppt, .pptx (Maximum size: 10 MB)</p>
                 </div>
 
                 {fileError && (
