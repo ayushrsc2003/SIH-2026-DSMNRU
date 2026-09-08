@@ -22,12 +22,15 @@ export async function POST(req: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
+    const rawBaseName = file.name.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 50);
+    const publicId = `ppt_${Date.now()}_${rawBaseName || 'presentation'}`;
+
     const uploadResult: any = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
           resource_type: 'raw',
           folder: 'sih-2026/presentations',
-          public_id: `presentation_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`,
+          public_id: publicId,
         },
         (error, result) => {
           if (error) reject(error);
