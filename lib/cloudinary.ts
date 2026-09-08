@@ -1,17 +1,15 @@
 import { v2 as cloudinary } from 'cloudinary';
 
-const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-const apiKey = process.env.CLOUDINARY_API_KEY;
-const apiSecret = process.env.CLOUDINARY_API_SECRET;
-
-if (cloudName && apiKey && apiSecret) {
-  cloudinary.config({ cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret });
-}
-
 export function getCloudinaryConfig() {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
   if (!cloudName || !apiKey || !apiSecret) {
-    throw new Error('Cloudinary is not configured. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET.');
+    throw new Error('Cloudinary environment variables missing. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in Vercel settings.');
   }
+
+  cloudinary.config({ cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret });
   return { cloudName, apiKey, apiSecret };
 }
 

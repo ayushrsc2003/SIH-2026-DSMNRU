@@ -67,7 +67,7 @@ export async function POST(req: Request) {
 
     try {
       const uploadedPresentation = new URL(pptUrl);
-      if (uploadedPresentation.protocol !== 'https:' || !uploadedPresentation.hostname.endsWith('res.cloudinary.com')) throw new Error();
+      if (uploadedPresentation.protocol !== 'https:' || !uploadedPresentation.hostname.includes('cloudinary.com')) throw new Error();
     } catch {
       return NextResponse.json({ error: 'The presentation must be uploaded through the approved Cloudinary service.' }, { status: 400 });
     }

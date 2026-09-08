@@ -15,27 +15,53 @@ export async function uploadPresentationToCloudinary(file: File): Promise<Cloudi
     throw new Error('The presentation file must be no larger than 15 MB.');
   }
 
-  const signatureResponse = await fetch('/api/upload/sign', { method: 'POST' });
-  const signatureData = await signatureResponse.json();
-  if (!signatureResponse.ok) {
-    throw new Error(signatureData.error || 'Could not prepare the presentation upload.');
+  // 1. Try client-side signed upload to Cloudinary
+  try {
+    const signatureResponse = await fetch('/api/upload/sign', { method: 'POST' });
+    const signatureData = await signatureResponse.json();
+
+    if (signatureResponse.ok && signatureData.apiKey && signatureData.cloudName) {
+      const body = new FormData();
+      body.append('file', file);
+      body.append('api_key', signatureData.apiKey);
+      body.append('timestamp', String(signatureData.timestamp));
+      body.append('signature', signatureData.signature);
+      body.append('folder', signatureData.folder);
+
+      const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${signatureData.cloudName}/raw/upload`, {
+        method: 'POST',
+        body,
+      });
+
+      if (uploadResponse.ok) {
+        const uploadData = await uploadResponse.json();
+        if (uploadData.secure_url && uploadData.public_id) {
+          return { pptUrl: uploadData.secure_url, publicId: uploadData.public_id, fileName: file.name };
+        }
+      }
+    }
+  } catch (directErr) {
+    console.warn('Direct client-side Cloudinary upload failed, falling back to server upload proxy...', directErr);
   }
 
-  const body = new FormData();
-  body.append('file', file);
-  body.append('api_key', signatureData.apiKey);
-  body.append('timestamp', String(signatureData.timestamp));
-  body.append('signature', signatureData.signature);
-  body.append('folder', signatureData.folder);
+  // 2. Fallback to server-side upload proxy (/api/upload)
+  try {
+    const serverBody = new FormData();
+    serverBody.append('file', file);
 
-  const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${signatureData.cloudName}/raw/upload`, {
-    method: 'POST',
-    body,
-  });
-  const uploadData = await uploadResponse.json();
-  if (!uploadResponse.ok || !uploadData.secure_url || !uploadData.public_id) {
-    throw new Error(uploadData.error?.message || 'Presentation upload failed. Please try again.');
+    const serverRes = await fetch('/api/upload', {
+      method: 'POST',
+      body: serverBody,
+    });
+
+    const serverData = await serverRes.json();
+    if (!serverRes.ok || !serverData.pptUrl) {
+      throw new Error(serverData.error || 'Server upload failed.');
+    }
+
+    return { pptUrl: serverData.pptUrl, publicId: serverData.publicId, fileName: file.name };
+  } catch (fallbackErr: any) {
+    console.error('All upload strategies failed:', fallbackErr);
+    throw new Error(fallbackErr?.message || 'Failed to upload presentation file. Please verify Cloudinary environment variables (CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET).');
   }
-
-  return { pptUrl: uploadData.secure_url, publicId: uploadData.public_id, fileName: file.name };
 }
