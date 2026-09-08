@@ -12,6 +12,7 @@ interface MemberFormState {
   gender: string;
   email: string;
   phone: string;
+  branch: string;
   year: string;
 }
 
@@ -20,6 +21,7 @@ const INITIAL_MEMBER: MemberFormState = {
   gender: '',
   email: '',
   phone: '',
+  branch: '',
   year: '',
 };
 
@@ -138,6 +140,7 @@ export default function RegisterPage() {
       leader.gender !== '' &&
       emailRegex.test(leader.email.trim()) &&
       phoneRegex.test(leader.phone.trim().replace(/\D/g, '')) &&
+      leader.branch !== '' &&
       leader.year !== '';
 
     // 5 Members Valid
@@ -147,6 +150,7 @@ export default function RegisterPage() {
         m.gender !== '' &&
         emailRegex.test(m.email.trim()) &&
         phoneRegex.test(m.phone.trim().replace(/\D/g, '')) &&
+        m.branch !== '' &&
         m.year !== ''
     );
 
@@ -190,7 +194,7 @@ export default function RegisterPage() {
     setServerError(null);
 
     if (!checklist.canSubmit) {
-      setServerError('Please complete all required fields and upload your presentation before submitting.');
+      setServerError('Please complete all required fields, including branches and academic years, and upload your presentation before submitting.');
       return;
     }
 
@@ -207,8 +211,8 @@ export default function RegisterPage() {
           problemStatementTitle: problemStatementTitle.trim(),
           problemStatementId: problemStatementId.trim(),
           acknowledged,
-          leader: { ...leader, name: leader.name.trim(), email: leader.email.trim().toLowerCase(), phone: leader.phone.trim() },
-          members: members.map((member) => ({ ...member, name: member.name.trim(), email: member.email.trim().toLowerCase(), phone: member.phone.trim() })),
+          leader: { ...leader, name: leader.name.trim(), email: leader.email.trim().toLowerCase(), phone: leader.phone.trim(), branch: leader.branch },
+          members: members.map((member) => ({ ...member, name: member.name.trim(), email: member.email.trim().toLowerCase(), phone: member.phone.trim(), branch: member.branch })),
           pptUrl: uploadedPresentation.pptUrl,
           pptFileName: uploadedPresentation.fileName,
         }),
@@ -479,7 +483,7 @@ export default function RegisterPage() {
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                 <div>
                   <label className="block text-[11px] font-mono text-slate-300 uppercase mb-1">
                     Leader Name <span className="text-saffron">*</span>
@@ -513,7 +517,7 @@ export default function RegisterPage() {
 
                 <div>
                   <label className="block text-[11px] font-mono text-slate-300 uppercase mb-1">
-                    Email Address (Gmail / Any Email) <span className="text-saffron">*</span>
+                    Email Address <span className="text-saffron">*</span>
                   </label>
                   <input
                     type="email"
@@ -538,6 +542,28 @@ export default function RegisterPage() {
                     className="w-full px-3.5 py-2.5 rounded-lg bg-navy-900 border border-surface-border text-white text-xs focus:outline-none focus:border-saffron"
                   />
                 </div>
+
+                <div>
+                  <label className="block text-[11px] font-mono text-slate-300 uppercase mb-1">
+                    Branch <span className="text-saffron">*</span>
+                  </label>
+                  <select
+                    required
+                    value={leader.branch}
+                    onChange={(e) => setLeader({ ...leader, branch: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-navy-900 border border-surface-border text-white text-xs focus:outline-none focus:border-saffron"
+                  >
+                    <option value="">-- Branch --</option>
+                    <option value="CSE">CSE</option>
+                    <option value="CSE AIDS">CSE AIDS</option>
+                    <option value="CSE AIFM">CSE AIFM</option>
+                    <option value="ECE">ECE</option>
+                    <option value="EE">EE</option>
+                    <option value="ME">ME</option>
+                    <option value="CE">CE</option>
+                  </select>
+                </div>
+
                 <div>
                   <label className="block text-[11px] font-mono text-slate-300 uppercase mb-1">
                     Academic Year <span className="text-saffron">*</span>
@@ -548,7 +574,7 @@ export default function RegisterPage() {
                     onChange={(e) => setLeader({ ...leader, year: e.target.value })}
                     className="w-full px-3.5 py-2.5 rounded-lg bg-navy-900 border border-surface-border text-white text-xs focus:outline-none focus:border-saffron"
                   >
-                    <option value="">-- Select --</option>
+                    <option value="">-- Year --</option>
                     <option value="2023-2027">2023-2027</option>
                     <option value="2024-2028">2024-2028</option>
                     <option value="2025-2029">2025-2029</option>
@@ -578,7 +604,7 @@ export default function RegisterPage() {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                     <div>
                       <label className="block text-[11px] font-mono text-slate-300 uppercase mb-1">
                         Member Name <span className="text-saffron">*</span>
@@ -612,7 +638,7 @@ export default function RegisterPage() {
 
                     <div>
                       <label className="block text-[11px] font-mono text-slate-300 uppercase mb-1">
-                        Email Address (Gmail / Any Email) <span className="text-saffron">*</span>
+                        Email Address <span className="text-saffron">*</span>
                       </label>
                       <input
                         type="email"
@@ -637,6 +663,28 @@ export default function RegisterPage() {
                         className="w-full px-3.5 py-2.5 rounded-lg bg-navy-900 border border-surface-border text-white text-xs focus:outline-none focus:border-saffron"
                       />
                     </div>
+
+                    <div>
+                      <label className="block text-[11px] font-mono text-slate-300 uppercase mb-1">
+                        Branch <span className="text-saffron">*</span>
+                      </label>
+                      <select
+                        required
+                        value={m.branch}
+                        onChange={(e) => updateMember(index, 'branch', e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-lg bg-navy-900 border border-surface-border text-white text-xs focus:outline-none focus:border-saffron"
+                      >
+                        <option value="">-- Branch --</option>
+                        <option value="CSE">CSE</option>
+                        <option value="CSE AIDS">CSE AIDS</option>
+                        <option value="CSE AIFM">CSE AIFM</option>
+                        <option value="ECE">ECE</option>
+                        <option value="EE">EE</option>
+                        <option value="ME">ME</option>
+                        <option value="CE">CE</option>
+                      </select>
+                    </div>
+
                     <div>
                       <label className="block text-[11px] font-mono text-slate-300 uppercase mb-1">
                         Academic Year <span className="text-saffron">*</span>
@@ -647,7 +695,7 @@ export default function RegisterPage() {
                         onChange={(e) => updateMember(index, 'year', e.target.value)}
                         className="w-full px-3.5 py-2.5 rounded-lg bg-navy-900 border border-surface-border text-white text-xs focus:outline-none focus:border-saffron"
                       >
-                        <option value="">-- Select --</option>
+                        <option value="">-- Year --</option>
                         <option value="2023-2027">2023-2027</option>
                         <option value="2024-2028">2024-2028</option>
                         <option value="2025-2029">2025-2029</option>

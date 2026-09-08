@@ -7,7 +7,7 @@ import sihProblemStatements from '@/data/sihProblemStatements.json';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-type Participant = { name: string; gender: string; email: string; phone: string; year: string };
+type Participant = { name: string; gender: string; email: string; phone: string; branch: string; year: string };
 type RegistrationPayload = { teamName?: string; problemStatementId?: string; problemStatementTitle?: string; acknowledged?: boolean; leader?: Participant; members?: Participant[]; pptUrl?: string; pptFileName?: string };
 
 function generateHumanTeamId() {
@@ -55,8 +55,14 @@ export async function POST(req: Request) {
 
     if (!teamName || !officialProblemStatement || officialProblemStatement.title !== psTitle) return NextResponse.json({ error: 'Please provide a team name and select a valid SIH 2026 problem statement.' }, { status: 400 });
     const academicYears = new Set(['2023-2027', '2024-2028', '2025-2029', '2026-2030']);
-    if (!data.acknowledged || !leader || !leader.name?.trim() || !leader.gender || !leader.email?.trim() || !leader.phone?.trim() || !academicYears.has(leader.year)) return NextResponse.json({ error: 'Complete team leader details, including academic year, and authorization acknowledgement are required.' }, { status: 400 });
-    if (members.length !== 5 || members.some((member) => !member.name?.trim() || !member.gender || !member.email?.trim() || !member.phone?.trim() || !academicYears.has(member.year))) return NextResponse.json({ error: 'Complete details, including academic year, are required for exactly five team members.' }, { status: 400 });
+    const validBranches = new Set(['CSE', 'CSE AIDS', 'CSE AIFM', 'ECE', 'EE', 'ME', 'CE']);
+
+    if (!data.acknowledged || !leader || !leader.name?.trim() || !leader.gender || !leader.email?.trim() || !leader.phone?.trim() || !validBranches.has(leader.branch) || !academicYears.has(leader.year)) {
+      return NextResponse.json({ error: 'Complete team leader details, including valid branch and academic year, and authorization acknowledgement are required.' }, { status: 400 });
+    }
+    if (members.length !== 5 || members.some((member) => !member.name?.trim() || !member.gender || !member.email?.trim() || !member.phone?.trim() || !validBranches.has(member.branch) || !academicYears.has(member.year))) {
+      return NextResponse.json({ error: 'Complete details, including valid branch and academic year, are required for exactly five team members.' }, { status: 400 });
+    }
     if (!pptUrl || !pptFileName) return NextResponse.json({ error: 'Upload the presentation to continue.' }, { status: 400 });
 
     try {
@@ -80,8 +86,8 @@ export async function POST(req: Request) {
       collegeName: process.env.COLLEGE_NAME || 'Institute of Engineering & Technology (IET), Dr. Shakuntala Misra National Rehabilitation University, Lucknow',
       teamName, psCode, psTitle, category: officialProblemStatement.category,
       leaderName: participants[0].name, leaderGender: participants[0].gender, leaderEmail: participants[0].email, leaderPhone: participants[0].phone,
-      leaderBranch: 'B.Tech CSE', leaderYear: participants[0].year, deanName: process.env.DEAN_NAME || 'Principal / Dean',
-      members: participants.slice(1).map((member) => ({ name: member.name, gender: member.gender, email: member.email, phone: member.phone, branch: 'B.Tech CSE', year: member.year })),
+      leaderBranch: participants[0].branch || 'CSE', leaderYear: participants[0].year, deanName: process.env.DEAN_NAME || 'Principal / Dean',
+      members: participants.slice(1).map((member) => ({ name: member.name, gender: member.gender, email: member.email, phone: member.phone, branch: member.branch || 'CSE', year: member.year })),
     });
 
     const createdTeam = await prisma.team.create({
@@ -91,7 +97,7 @@ export async function POST(req: Request) {
         leaderName: participants[0].name, leaderEmail: participants[0].email, leaderPhone: participants[0].phone,
         pptUrl, pptFileName,
         authLetterUrl, authDocxPath: authLetterUrl,
-        members: { create: participants.map((participant, index) => ({ name: participant.name, gender: participant.gender, email: participant.email, phone: participant.phone, year: participant.year, isLeader: index === 0 })) },
+        members: { create: participants.map((participant, index) => ({ name: participant.name, gender: participant.gender, email: participant.email, phone: participant.phone, branch: participant.branch, year: participant.year, isLeader: index === 0 })) },
       },
     });
 
