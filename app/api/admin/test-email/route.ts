@@ -26,13 +26,73 @@ export async function GET(req: Request) {
     const rawPass = process.env.GMAIL_APP_PASSWORD || process.env.GMAIL_PASSWORD || process.env.GMAIL_PASS || process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD || '';
     const gmailPass = rawPass.trim().replace(/^["']|["']$/g, '').replace(/\s+/g, '');
 
+    const gmailWebhookUrl = (process.env.GMAIL_WEBHOOK_URL || process.env.GOOGLE_MAIL_WEBHOOK_URL || process.env.EMAIL_WEBHOOK_URL || '').trim().replace(/^["']|["']$/g, '');
+
+    // 1. If GMAIL_WEBHOOK_URL is configured, test HTTPS Webhook (Port 443 - Solution 1)
+    if (gmailWebhookUrl) {
+      try {
+        const webhookRes = await fetch(gmailWebhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            to: gmailUser,
+            subject: `SIH 2026 DSMNRU - Webhook Test Email (${new Date().toLocaleTimeString('en-IN')})`,
+            html: `
+              <div style="font-family:Arial,sans-serif;padding:20px;border:1px solid #e5e7eb;border-radius:8px;">
+                <h2 style="color:#059669;">✓ Google Apps Script Webhook Configured Successfully!</h2>
+                <p>This is a diagnostic test email sent via your Google Apps Script Webhook on HTTPS Port 443.</p>
+                <p>Emails from <strong>${gmailUser}</strong> will now be delivered to candidate inboxes automatically.</p>
+              </div>
+            `,
+            name: 'SIH 2026 DSMNRU',
+            replyTo: 'achaurasiya_csebtech23_041@dsmnru.ac.in',
+          }),
+          redirect: 'follow',
+        });
+
+        const resText = await webhookRes.text().catch(() => '');
+        let resJson: any = null;
+        try {
+          resJson = JSON.parse(resText);
+        } catch {}
+
+        if (webhookRes.ok && (!resJson || resJson.success !== false)) {
+          return NextResponse.json({
+            success: true,
+            status: 'WEBHOOK_SENT_SUCCESSFULLY',
+            provider: 'google_apps_script_webhook',
+            message: `Test email successfully sent to ${gmailUser} via Google Apps Script HTTPS Webhook (Port 443).`,
+            gmailUser,
+            webhookUrl: gmailWebhookUrl.replace(/(\/macros\/s\/).+(\/exec)/, '$1***$2'),
+            response: resJson || resText,
+          });
+        } else {
+          return NextResponse.json({
+            success: false,
+            status: 'WEBHOOK_FAILED',
+            error: resJson?.error || `Webhook returned status ${webhookRes.status}: ${resText}`,
+            webhookUrl: gmailWebhookUrl.replace(/(\/macros\/s\/).+(\/exec)/, '$1***$2'),
+          }, { status: 502 });
+        }
+      } catch (webhookErr: any) {
+        return NextResponse.json({
+          success: false,
+          status: 'WEBHOOK_NETWORK_ERROR',
+          error: webhookErr?.message || 'Failed to reach Google Apps Script Webhook',
+        }, { status: 502 });
+      }
+    }
+
     if (!gmailPass) {
       return NextResponse.json({
         success: false,
-        status: 'MISSING_PASSWORD',
-        message: 'GMAIL_APP_PASSWORD is not set in Render environment variables. Please add GMAIL_APP_PASSWORD in Render Dashboard.',
+        status: 'MISSING_CREDENTIALS',
+        message: 'Neither GMAIL_WEBHOOK_URL nor GMAIL_APP_PASSWORD is set in Render environment variables. Please add GMAIL_WEBHOOK_URL (Recommended) or GMAIL_APP_PASSWORD in Render Dashboard.',
         gmailUser,
         hasPassword: false,
+        hasWebhook: false,
       }, { status: 400 });
     }
 

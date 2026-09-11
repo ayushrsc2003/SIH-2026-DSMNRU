@@ -120,7 +120,39 @@ export async function sendConfirmationEmail({
     </div>
   `;
 
-  // 1. Attempt Sending via Gmail SMTP (Nodemailer)
+  const gmailWebhookUrl = (process.env.GMAIL_WEBHOOK_URL || process.env.GOOGLE_MAIL_WEBHOOK_URL || process.env.EMAIL_WEBHOOK_URL || '').trim().replace(/^["']|["']$/g, '');
+
+  // 1. Primary Dispatcher: Google Apps Script HTTPS Webhook (Port 443 - 100% Reliable on Render)
+  if (gmailWebhookUrl) {
+    try {
+      const webhookRes = await fetch(gmailWebhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: leader.email,
+          subject,
+          html: htmlContent,
+          name: 'SIH 2026 DSMNRU',
+          replyTo: 'achaurasiya_csebtech23_041@dsmnru.ac.in',
+        }),
+        redirect: 'follow',
+      });
+
+      if (webhookRes.ok) {
+        console.log(`[MAILER] Registration confirmation email successfully sent to ${leader.email} via Google Apps Script Webhook.`);
+        return { success: true, provider: 'google_apps_script_webhook' };
+      } else {
+        const errText = await webhookRes.text().catch(() => '');
+        console.warn(`[MAILER] Webhook response status ${webhookRes.status}: ${errText}`);
+      }
+    } catch (webhookErr: any) {
+      console.error('[MAILER] Google Apps Script Webhook error:', webhookErr?.message || webhookErr);
+    }
+  }
+
+  // 2. Secondary Dispatcher: Direct Gmail SMTP (Nodemailer)
   if (gmailPass) {
     try {
       const transporter = nodemailer.createTransport({
@@ -149,7 +181,6 @@ export async function sendConfirmationEmail({
       return { success: true, provider: 'gmail_smtp' };
     } catch (gmailErr: any) {
       console.error('[MAILER] Gmail SMTP sending error (attempting port 587 fallback):', gmailErr?.message || gmailErr);
-      // Fallback to Port 587 with explicit IPv4
       try {
         const fallbackTransporter = nodemailer.createTransport({
           host: 'smtp.gmail.com',
@@ -177,14 +208,11 @@ export async function sendConfirmationEmail({
         return { success: true, provider: 'gmail_smtp_587' };
       } catch (fallbackErr: any) {
         console.error('[MAILER] Gmail port 587 also failed:', fallbackErr?.message || fallbackErr);
-        return { success: false, provider: 'gmail_smtp', error: fallbackErr?.message || gmailErr?.message };
       }
     }
-  } else {
-    console.warn('[MAILER] GMAIL_APP_PASSWORD is not set in environment variables.');
   }
 
-  // 2. Fallback to Resend if configured
+  // 3. Fallback to Resend if configured
   if (resendApiKey && resendFrom) {
     try {
       const resend = new Resend(resendApiKey);
@@ -207,6 +235,6 @@ export async function sendConfirmationEmail({
   return {
     success: false,
     provider: 'none',
-    error: 'No email service credentials configured. Set GMAIL_APP_PASSWORD in Render environment variables.',
+    error: 'No email service credentials configured. Set GMAIL_WEBHOOK_URL in Render environment variables.',
   };
 }
