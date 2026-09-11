@@ -5,7 +5,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import ProblemStatementSelect, { ProblemStatementOption } from '@/components/ProblemStatementSelect';
 import { uploadPresentationToCloudinary } from '@/lib/uploadToCloudinary';
-import { User, Mail, Phone, Upload, CheckCircle2, AlertCircle, Send, RefreshCw, Lock, Sparkles, ExternalLink, ShieldCheck, Clock } from 'lucide-react';
+import { User, Mail, Phone, Upload, CheckCircle2, AlertCircle, Send, RefreshCw, Lock, Sparkles, ExternalLink, ShieldCheck, Clock, FileText } from 'lucide-react';
 
 interface MemberFormState {
   name: string;
@@ -445,13 +445,29 @@ export default function RegisterPage() {
               <p>Your uploaded PPT file and official Authorization Letter have been safely received by college administration.</p>
             </div>
 
-            <button
-              onClick={handleReset}
-              className="inline-flex items-center space-x-2 px-6 py-3 text-xs font-heading font-bold text-white bg-saffron hover:bg-saffron-hover rounded-xl shadow-saffron-glow transition-all"
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span>Register Another Team</span>
-            </button>
+            {successResponse.teamId && (
+              <div className="pt-2">
+                <a
+                  href={`/api/letters/${successResponse.teamId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-2 px-6 py-3.5 text-sm font-heading font-bold text-white bg-accentGreen hover:bg-emerald-600 rounded-xl shadow-green-glow transition-all"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>Download Official Authorization Letter (PDF)</span>
+                </a>
+              </div>
+            )}
+
+            <div>
+              <button
+                onClick={handleReset}
+                className="inline-flex items-center space-x-2 px-6 py-3 text-xs font-heading font-bold text-white bg-saffron hover:bg-saffron-hover rounded-xl shadow-saffron-glow transition-all"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Register Another Team</span>
+              </button>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-8">

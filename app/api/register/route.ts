@@ -167,6 +167,10 @@ export async function POST(req: Request) {
       },
     });
 
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sih-2026-dsmnru.onrender.com';
+    const letterDirectUrl = `${baseUrl}/api/letters/${createdTeam.teamId}`;
+    const effectiveLetterUrl = authLetterUrl.startsWith('http') && !authLetterUrl.startsWith('data:') ? authLetterUrl : letterDirectUrl;
+
     // Forward to Google Sheets webhook if configured
     forwardToGoogleSheets({
       timestamp: new Date().toISOString(),
@@ -178,16 +182,29 @@ export async function POST(req: Request) {
       leader: participants[0],
       members: participants.slice(1),
       pptUrl,
-      authLetterUrl,
+      authLetterUrl: letterDirectUrl,
     });
 
     try {
-      await sendConfirmationEmail({ teamId: createdTeam.teamId, teamName, psCode, psTitle, category: officialProblemStatement.category, leader: participants[0], authLetterUrl });
+      await sendConfirmationEmail({
+        teamId: createdTeam.teamId,
+        teamName,
+        psCode,
+        psTitle,
+        category: officialProblemStatement.category,
+        leader: participants[0],
+        authLetterUrl: letterDirectUrl,
+      });
     } catch (emailError) {
       console.error('Registration confirmation email failed:', emailError);
     }
 
-    return NextResponse.json({ success: true, message: `Registration submitted successfully for Team "${createdTeam.teamName}".`, teamId: createdTeam.teamId, authLetterUrl }, { status: 201 });
+    return NextResponse.json({
+      success: true,
+      message: `Registration submitted successfully for Team "${createdTeam.teamName}".`,
+      teamId: createdTeam.teamId,
+      authLetterUrl: letterDirectUrl,
+    }, { status: 201 });
   } catch (error) {
     console.error('Registration API error:', error);
     return NextResponse.json({ error: 'Unable to complete registration. Please try again.' }, { status: 500 });

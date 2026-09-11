@@ -2,7 +2,6 @@ import fs from 'fs/promises';
 import fsSync from 'fs';
 import path from 'path';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
-import PDFDocumentKit from 'pdfkit';
 import { cloudinary, getCloudinaryConfig } from '@/lib/cloudinary';
 
 export interface AuthorizationPdfData {
@@ -32,200 +31,88 @@ function toSafeName(value: string): string {
   return value.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/_+/g, '_').slice(0, 60) || 'Team';
 }
 
-function uploadRawPdf(buffer: Buffer, publicId: string): Promise<string> {
+function uploadPdfToCloudinary(buffer: Buffer, publicId: string): Promise<string> {
   return new Promise((resolve, reject) => {
+    // Attempt 1: Upload as image/pdf for direct browser PDF viewing
     const stream = cloudinary.uploader.upload_stream(
       {
-        resource_type: 'raw',
+        resource_type: 'image',
+        format: 'pdf',
         folder: 'sih-2026/authorization_letters',
-        public_id: `${publicId}.pdf`,
+        public_id: publicId,
         overwrite: true,
       },
       (error, result) => {
-        if (error || !result?.secure_url) {
-          reject(error || new Error('Cloudinary did not return a valid PDF authorization letter URL.'));
+        if (!error && result?.secure_url) {
+          resolve(result.secure_url);
           return;
         }
-        resolve(result.secure_url);
+
+        // Attempt 2: Fallback to raw resource upload
+        const rawStream = cloudinary.uploader.upload_stream(
+          {
+            resource_type: 'raw',
+            folder: 'sih-2026/authorization_letters',
+            public_id: `${publicId}.pdf`,
+            overwrite: true,
+          },
+          (rawErr, rawRes) => {
+            if (rawErr || !rawRes?.secure_url) {
+              reject(rawErr || error || new Error('Cloudinary did not return a valid PDF authorization letter URL.'));
+              return;
+            }
+            resolve(rawRes.secure_url);
+          }
+        );
+        rawStream.end(buffer);
       }
     );
     stream.end(buffer);
   });
 }
 
-function createBaseTemplateIfMissing(templatePath: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (fsSync.existsSync(templatePath)) {
-      return resolve();
-    }
-
-    try {
-      const parentDir = path.dirname(templatePath);
-      if (!fsSync.existsSync(parentDir)) {
-        fsSync.mkdirSync(parentDir, { recursive: true });
-      }
-
-      const doc = new PDFDocumentKit({
-        size: 'A4',
-        margin: 36,
-        info: { Title: 'SIH 2026 Official College Authorization Letter' },
-      });
-
-      const writeStream = fsSync.createWriteStream(templatePath);
-      doc.pipe(writeStream);
-
-      const width = doc.page.width;
-      const left = 36;
-      const right = width - 36;
-      const contentWidth = right - left;
-
-      // Header top line
-      doc.rect(left, 115, contentWidth, 1.5).fill('#000000');
-
-      // Top Left Header
-      doc.fillColor('#000000').font('Helvetica-Bold').fontSize(10).text('Prof. C.K. Dixit,', left, 40);
-      doc.font('Helvetica-Bold').fontSize(9).text('Dean, Faculty of Engineering & Technology', left, 54);
-      doc.font('Helvetica').fontSize(8.5).text('Faculty of Engineering & Technology', left, 68);
-
-      // Top Center Emblem Circle
-      const centerX = width / 2;
-      doc.circle(centerX, 68, 26).lineWidth(1.5).stroke('#000000');
-      doc.circle(centerX, 68, 22).lineWidth(0.8).stroke('#000000');
-      doc.font('Helvetica-Bold').fontSize(7).text('UP GOVT', centerX - 16, 61);
-      doc.font('Helvetica').fontSize(6).text('DSMNRU', centerX - 13, 71);
-
-      // Top Right Header
-      const rightBlockX = width - 260;
-      doc.font('Helvetica-Bold').fontSize(8.5).text('Dr. Shakuntala Misra National Rehabilitation University, Lucknow', rightBlockX, 40, { width: 224, align: 'right' });
-      doc.font('Helvetica').fontSize(8).text('Government of Uttar Pradesh, Mohan Road, Lucknow - 226017', rightBlockX, 64, { width: 224, align: 'right' });
-      doc.font('Helvetica').fontSize(7.5).text('Phone: 0522-2999862 | Website: http://dsmnru.up.nic.in', rightBlockX, 86, { width: 224, align: 'right' });
-
-      // Reference and Date
-      doc.font('Helvetica-Bold').fontSize(10.5).text('Ref.       /FOET/ B.TECH/DSMNRU/ 2025-26', left + 10, 138);
-      doc.font('Helvetica-Bold').fontSize(10.5).text('Date:', right - 130, 138);
-
-      // Subject
-      doc.font('Helvetica-Bold').fontSize(12).text('Sub: Smart India Hackathon 2026 – Nomination', left, 172, { width: contentWidth, align: 'center' });
-
-      // Paragraph
-      const para = 'I am pleased to nominate the below team from our college to participate in Smart India Hackathon 2026. AICTE Application No/ UGC Registration No for our college is U-0512.';
-      doc.font('Helvetica').fontSize(10).text(para, left, 204, { width: contentWidth, lineGap: 3 });
-
-      // Team Header
-      doc.font('Helvetica-Bold').fontSize(10.5).text('Team : < Team Name >', left, 240);
-
-      // Table Setup
-      const tableTop = 258;
-      const colWidths = [72, 90, 52, 136, 68, 52, 53.28];
-      const colX = [left];
-      for (let i = 0; i < colWidths.length; i++) {
-        colX.push(colX[i] + colWidths[i]);
-      }
-      const headerH = 26;
-      const rowH = 32;
-      const totalH = headerH + (6 * rowH);
-
-      // Table Outer & Inner Grid
-      doc.rect(left, tableTop, contentWidth, totalH).lineWidth(1).stroke('#000000');
-      doc.moveTo(left, tableTop + headerH).lineTo(right, tableTop + headerH).lineWidth(1).stroke('#000000');
-
-      for (let r = 1; r <= 6; r++) {
-        const y = tableTop + headerH + (r * rowH);
-        doc.moveTo(left, y).lineTo(right, y).lineWidth(0.8).stroke('#000000');
-      }
-
-      for (let c = 1; c < colX.length - 1; c++) {
-        doc.moveTo(colX[c], tableTop).lineTo(colX[c], tableTop + totalH).lineWidth(0.8).stroke('#000000');
-      }
-
-      // Header Texts
-      doc.font('Helvetica-Bold').fontSize(8.5);
-      doc.text('Role', colX[0] + 5, tableTop + 8);
-      doc.text('Name', colX[1] + 5, tableTop + 8);
-      doc.text('Gender\n(M/F)', colX[2] + 4, tableTop + 4);
-      doc.text('Email id', colX[3] + 5, tableTop + 8);
-      doc.text('Mobile no.', colX[4] + 4, tableTop + 8);
-      doc.text('Stream', colX[5] + 4, tableTop + 8);
-      doc.text('Academic\nYear', colX[6] + 4, tableTop + 4);
-
-      // Pre-printed Column 1 Roles
-      const roles = ['Team Leader', 'Team Member', 'Team Member', 'Team Member', 'Team Member', 'Team Member'];
-      roles.forEach((role, idx) => {
-        const y = tableTop + headerH + (idx * rowH) + 11;
-        doc.font(idx === 0 ? 'Helvetica-Bold' : 'Helvetica').fontSize(8.5).text(role, colX[0] + 5, y);
-      });
-
-      // Stamp & Sign in Blue
-      const stampX = right - 220;
-      const stampY = 510;
-
-      // Signature strokes in blue
-      doc.save();
-      doc.strokeColor('#0f2b82').lineWidth(2);
-      doc.moveTo(stampX - 15, stampY + 28).bezierCurveTo(stampX + 20, stampY + 60, stampX + 70, stampY + 10, stampX + 110, stampY + 42).stroke();
-      doc.moveTo(stampX + 10, stampY + 45).lineTo(stampX + 130, stampY + 22).lineWidth(1.5).stroke();
-      doc.restore();
-
-      // Official Stamp Box text in Blue
-      doc.fillColor('#0f2b82').font('Helvetica-Bold').fontSize(8.5).text('Prof. C.K. Dixit, Dean', stampX, stampY + 28);
-      doc.font('Helvetica-Bold').fontSize(7.5).text('Faculty of Engineering & Technology (FOET)', stampX, stampY + 40);
-      doc.font('Helvetica-Bold').fontSize(7.5).text('Dr. Shakuntala Misra National Rehabilitation University', stampX, stampY + 52);
-
-      // Official English Subtext
-      doc.fillColor('#000000').font('Helvetica-Bold').fontSize(9.5).text('(Prof. C.K. Dixit)', stampX + 20, stampY + 76);
-      doc.font('Helvetica').fontSize(9).text('Dean,', stampX + 50, stampY + 89);
-      doc.font('Helvetica-Bold').fontSize(8.5).text('Faculty of Engineering & Technology', stampX - 10, stampY + 101);
-
-      doc.end();
-      writeStream.on('finish', () => resolve());
-      writeStream.on('error', (err) => reject(err));
-    } catch (e) {
-      reject(e);
-    }
-  });
-}
-
-export async function generateAuthorizationPdf(data: AuthorizationPdfData): Promise<string> {
-  getCloudinaryConfig();
-
+export async function generateAuthorizationPdfBytes(data: AuthorizationPdfData): Promise<Uint8Array> {
   const templatePath = path.join(process.cwd(), 'public', 'templates', 'FINAL_COPY_AUTHORIZATION_LETTER.pdf');
-  await createBaseTemplateIfMissing(templatePath);
+  if (!fsSync.existsSync(templatePath)) {
+    throw new Error(`Official authorization letter template not found at: ${templatePath}`);
+  }
 
   const basePdfBytes = await fs.readFile(templatePath);
   const pdfDoc = await PDFDocument.load(basePdfBytes);
-  const pages = pdfDoc.getPages();
-  const page = pages[0];
-  const { width, height } = page.getSize();
+  const page = pdfDoc.getPages()[0];
 
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-  // 1. Draw Submission Date (DD/MM/YYYY)
-  const dateStr = new Date().toLocaleDateString('en-IN', {
+  // 1. Draw Submission Date (DD-MM-YYYY)
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-GB', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
-  });
+  }).replace(/\//g, '-');
+
   page.drawText(dateStr, {
-    x: width - 96,
-    y: height - 146,
-    size: 9.5,
+    x: 482,
+    y: 617.5,
+    size: 10,
     font: fontBold,
     color: rgb(0, 0, 0),
   });
 
   // 2. Draw Team Name
+  // Cover pre-printed '< Team Name >' placeholder with a clean white box
   page.drawRectangle({
-    x: 76,
-    y: height - 250,
+    x: 52,
+    y: 520,
     width: 320,
-    height: 14,
+    height: 16,
     color: rgb(1, 1, 1),
   });
   page.drawText(data.teamName.slice(0, 45), {
-    x: 78,
-    y: height - 248,
-    size: 10.5,
+    x: 56,
+    y: 523.5,
+    size: 10,
     font: fontBold,
     color: rgb(0, 0, 0),
   });
@@ -238,7 +125,7 @@ export async function generateAuthorizationPdf(data: AuthorizationPdfData): Prom
       email: data.leaderEmail,
       phone: data.leaderPhone,
       stream: data.leaderBranch || 'CSE',
-      year: data.leaderYear || '2023-2027',
+      year: data.leaderYear || '3rd Year',
     },
     ...data.members.slice(0, 5).map((m) => ({
       name: m.name,
@@ -246,80 +133,92 @@ export async function generateAuthorizationPdf(data: AuthorizationPdfData): Prom
       email: m.email,
       phone: m.phone,
       stream: m.branch || 'CSE',
-      year: m.year || '2023-2027',
+      year: m.year || '3rd Year',
     })),
   ];
 
-  const colX = [36, 108, 198, 250, 386, 454, 506];
+  // Exact row Y baselines in FINAL_COPY_AUTHORIZATION_LETTER.pdf
+  const rowYs = [462, 420, 377, 335, 292, 249];
 
   participants.forEach((m, idx) => {
-    const y = height - (300 + idx * 32);
+    const y = rowYs[idx];
+    if (typeof y !== 'number') return;
 
-    // Name
-    const cleanName = m.name.trim().slice(0, 18);
+    // Col 1: Name (87.72 to 178.2)
+    const cleanName = m.name.trim().slice(0, 20);
     page.drawText(cleanName, {
-      x: colX[1] + 4,
+      x: 91,
       y,
-      size: 8,
+      size: 8.5,
       font: idx === 0 ? fontBold : font,
       color: rgb(0, 0, 0),
     });
 
-    // Gender (M/F)
+    // Col 2: Gender (M/F) (178.68 to 233.04)
     const genderLetter = m.gender.toUpperCase().startsWith('F') ? 'F' : 'M';
     page.drawText(genderLetter, {
-      x: colX[2] + 18,
+      x: 202,
       y,
-      size: 8.5,
+      size: 9,
       font,
       color: rgb(0, 0, 0),
     });
 
-    // Email
+    // Col 3: Email (233.52 to 376.68)
     const cleanEmail = m.email.trim();
-    const displayEmail = cleanEmail.length > 25 ? `${cleanEmail.slice(0, 24)}..` : cleanEmail;
+    const displayEmail = cleanEmail.length > 25 ? `${cleanEmail.slice(0, 23)}...` : cleanEmail;
     page.drawText(displayEmail, {
-      x: colX[3] + 4,
+      x: 236,
       y,
       size: 7.5,
       font,
       color: rgb(0, 0, 0),
     });
 
-    // Mobile no.
+    // Col 4: Mobile no. (377.16 to 447.48)
     const cleanPhone = m.phone.trim();
     page.drawText(cleanPhone, {
-      x: colX[4] + 4,
+      x: 380,
       y,
-      size: 8,
+      size: 8.5,
       font,
       color: rgb(0, 0, 0),
     });
 
-    // Stream / Branch
+    // Col 5: Stream / Branch (447.96 to 511.32)
     const cleanStream = m.stream.trim().slice(0, 10);
     page.drawText(cleanStream, {
-      x: colX[5] + 4,
+      x: 452,
       y,
-      size: 8,
+      size: 8.5,
       font,
       color: rgb(0, 0, 0),
     });
 
-    // Academic Year
+    // Col 6: Academic Year (511.8 to 582.12)
     const cleanYear = m.year.trim().slice(0, 10);
     page.drawText(cleanYear, {
-      x: colX[6] + 4,
+      x: 516,
       y,
-      size: 8,
+      size: 8.5,
       font,
       color: rgb(0, 0, 0),
     });
   });
 
-  const modifiedPdfBytes = await pdfDoc.save();
+  return pdfDoc.save();
+}
+
+export async function generateAuthorizationPdf(data: AuthorizationPdfData): Promise<string> {
+  const modifiedPdfBytes = await generateAuthorizationPdfBytes(data);
   const pdfBuffer = Buffer.from(modifiedPdfBytes);
 
-  const publicId = `SIH2026_Auth_${toSafeName(data.teamName)}_${Date.now()}`;
-  return uploadRawPdf(pdfBuffer, publicId);
+  try {
+    getCloudinaryConfig();
+    const publicId = `SIH2026_Auth_${toSafeName(data.teamName)}_${Date.now()}`;
+    return await uploadPdfToCloudinary(pdfBuffer, publicId);
+  } catch (cloudErr) {
+    console.warn('Cloudinary upload warning:', cloudErr);
+    return `data:application/pdf;base64,${pdfBuffer.toString('base64')}`;
+  }
 }

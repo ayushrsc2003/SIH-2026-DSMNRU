@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Lock, LogOut, Download, Search, Filter, Users, ShieldCheck, PieChart, ChevronDown, ChevronUp, RefreshCw, AlertCircle, FileText, CheckCircle2, ToggleLeft, ToggleRight, Power } from 'lucide-react';
+import { Lock, LogOut, Download, Search, Filter, Users, ShieldCheck, PieChart, ChevronDown, ChevronUp, RefreshCw, AlertCircle, FileText, CheckCircle2, ToggleLeft, ToggleRight, Power, Trash2 } from 'lucide-react';
 
 interface SubmissionRecord {
   id: string;
@@ -26,6 +26,7 @@ export default function AdminPage() {
 
   const [submissions, setSubmissions] = useState<SubmissionRecord[]>([]);
   const [loadingData, setLoadingData] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Registration Toggle Control State
@@ -115,6 +116,35 @@ export default function AdminPage() {
 
   const handleDownloadPresentation = (id: string) => {
     window.open(`/api/admin/teams/${id}/ppt?token=${encodeURIComponent(adminTokenInput)}`, '_blank');
+  };
+
+  const handleDeleteSubmission = async (id: string, teamName: string, teamId: string) => {
+    const isConfirmed = window.confirm(
+      `⚠️ PERMANENT DELETION WARNING:\n\nAre you sure you want to permanently delete Team "${teamName}" (${teamId}) and remove all its student member records, PPT presentation, and authorization letter files from the server and database?\n\nThis action cannot be undone.`
+    );
+    if (!isConfirmed) return;
+
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/admin/teams/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${adminTokenInput.trim()}`,
+        },
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setSubmissions((prev) => prev.filter((item) => item.id !== id && item.teamId !== teamId));
+        alert(data.message || 'Registration successfully deleted.');
+      } else {
+        alert(data.error || 'Failed to delete registration.');
+      }
+    } catch (err) {
+      alert('Network error deleting registration from server.');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const handleExportCsv = async () => {
@@ -377,6 +407,20 @@ export default function AdminPage() {
                         >
                           <Download className="w-3.5 h-3.5" />
                           <span>DOCX</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteSubmission(sub.id, sub.teamName, sub.teamId)}
+                          disabled={deletingId === sub.id}
+                          className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/40 text-red-300 border border-red-500/50 text-xs font-mono font-bold transition-colors"
+                          title="Permanently delete registration and remove data from server"
+                        >
+                          {deletingId === sub.id ? (
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin text-red-400" />
+                          ) : (
+                            <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                          )}
+                          <span>Delete</span>
                         </button>
                       </td>
 

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyAdminSession } from '@/lib/auth';
-import { generateCollegeAuthorizationLetter } from '@/lib/generateAuthLetter';
+import { generateAuthorizationPdfBytes } from '@/lib/generateAuthorizationPdf';
 import fs from 'fs';
 import path from 'path';
 
@@ -32,8 +32,10 @@ export async function GET(
       );
     }
 
-    const team = await prisma.team.findUnique({
-      where: { id: params.id },
+    const team = await prisma.team.findFirst({
+      where: {
+        OR: [{ id: params.id }, { teamId: params.id }],
+      },
       include: { members: { orderBy: { isLeader: 'desc' } } },
     });
 
@@ -41,71 +43,49 @@ export async function GET(
       return NextResponse.json({ error: 'Team submission record not found.' }, { status: 404 });
     }
 
-    if (type === 'docx' && team.authLetterUrl) {
+    if (type === 'pdf') {
+      const leader = team.members.find((member) => member.isLeader) || team.members[0];
+      const members = team.members.filter((member) => member.id !== leader?.id);
+
+      const pdfBytes = await generateAuthorizationPdfBytes({
+        teamName: team.teamName,
+        psCode: team.problemStatementId,
+        psTitle: team.problemStatementTitle,
+        category: team.category,
+        leaderName: leader?.name || team.leaderName || 'Team Leader',
+        leaderGender: leader?.gender || 'M',
+        leaderEmail: leader?.email || team.leaderEmail || '',
+        leaderPhone: leader?.phone || team.leaderPhone || '',
+        leaderBranch: leader?.branch || 'CSE',
+        leaderYear: leader?.year || '3rd Year',
+        members: members.map((m) => ({
+          name: m.name,
+          gender: m.gender,
+          email: m.email,
+          phone: m.phone,
+          branch: m.branch,
+          year: m.year,
+        })),
+      });
+
+      const safeTeamName = team.teamName.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40) || 'Team';
+      const filename = `SIH2026_Authorization_${safeTeamName}.pdf`;
+
+      return new NextResponse(Buffer.from(pdfBytes), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Cache-Control': 'public, max-age=3600',
+        },
+      });
+    }
+
+    if (team.authLetterUrl) {
       return NextResponse.redirect(team.authLetterUrl);
     }
 
-    let filePath = type === 'docx' ? team.authDocxPath : team.authPdfPath;
-
-    // Older deployments could save DOCX bytes under a .pdf extension after a
-    // PDFKit failure. Regenerate that letter on demand instead of serving a
-    // corrupt file to the administrator.
-    const isValidPdf = (candidatePath: string | null) => {
-      if (!candidatePath || !fs.existsSync(candidatePath)) return false;
-      return fs.readFileSync(candidatePath, { encoding: null, flag: 'r' }).subarray(0, 5).toString() === '%PDF-';
-    };
-    if (type === 'pdf' && !isValidPdf(filePath)) {
-      const leader = team.members.find((member) => member.isLeader);
-      if (!leader) {
-        return NextResponse.json({ error: 'Cannot regenerate this letter because its team leader record is missing.' }, { status: 422 });
-      }
-
-      const regenerated = await generateCollegeAuthorizationLetter({
-        teamName: team.teamName,
-        psId: team.problemStatementId,
-        psTitle: team.problemStatementTitle,
-        leader: {
-          name: leader.name,
-          gender: leader.gender,
-          email: leader.email,
-          phone: leader.phone,
-        },
-        members: team.members
-          .filter((member) => !member.isLeader)
-          .map((member) => ({
-            name: member.name,
-            gender: member.gender,
-            email: member.email,
-            phone: member.phone,
-          })),
-      });
-      await prisma.team.update({
-        where: { id: team.id },
-        data: { authDocxPath: regenerated.docxPath, authPdfPath: regenerated.pdfPath },
-      });
-      filePath = regenerated.pdfPath;
-    }
-
-    if (!filePath || !fs.existsSync(filePath)) {
-      return NextResponse.json(
-        { error: `Requested ${type.toUpperCase()} authorization letter file does not exist on server.` },
-        { status: 404 }
-      );
-    }
-
-    const fileBuffer = fs.readFileSync(filePath);
-    const filename = path.basename(filePath);
-    const contentType = type === 'docx'
-      ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      : 'application/pdf';
-
-    return new NextResponse(fileBuffer, {
-      status: 200,
-      headers: {
-        'Content-Type': contentType,
-        'Content-Disposition': `attachment; filename="${filename}"`,
-      },
-    });
+    return NextResponse.json({ error: 'Authorization letter not found.' }, { status: 404 });
   } catch (error: any) {
     console.error('Download letter error:', error);
     return NextResponse.json({ error: 'Failed to download authorization letter.' }, { status: 500 });
