@@ -127,6 +127,7 @@ export async function sendConfirmationEmail({
         host: 'smtp.gmail.com',
         port: 465,
         secure: true, // SSL
+        family: 4, // Force IPv4 to prevent Render container ENETUNREACH IPv6 error
         auth: {
           user: gmailUser,
           pass: gmailPass,
@@ -134,7 +135,7 @@ export async function sendConfirmationEmail({
         tls: {
           rejectUnauthorized: false,
         },
-      });
+      } as any);
 
       await transporter.sendMail({
         from: `"SIH 2026 DSMNRU" <${gmailUser}>`,
@@ -147,8 +148,37 @@ export async function sendConfirmationEmail({
       console.log(`[MAILER] Registration confirmation email successfully sent to ${leader.email} via Gmail SMTP (${gmailUser}).`);
       return { success: true, provider: 'gmail_smtp' };
     } catch (gmailErr: any) {
-      console.error('[MAILER] Gmail SMTP sending error:', gmailErr?.message || gmailErr);
-      return { success: false, provider: 'gmail_smtp', error: gmailErr?.message || 'Gmail SMTP failed' };
+      console.error('[MAILER] Gmail SMTP sending error (attempting port 587 fallback):', gmailErr?.message || gmailErr);
+      // Fallback to Port 587 with explicit IPv4
+      try {
+        const fallbackTransporter = nodemailer.createTransport({
+          host: 'smtp.gmail.com',
+          port: 587,
+          secure: false, // STARTTLS
+          family: 4,
+          auth: {
+            user: gmailUser,
+            pass: gmailPass,
+          },
+          tls: {
+            rejectUnauthorized: false,
+          },
+        } as any);
+
+        await fallbackTransporter.sendMail({
+          from: `"SIH 2026 DSMNRU" <${gmailUser}>`,
+          to: leader.email,
+          replyTo: 'achaurasiya_csebtech23_041@dsmnru.ac.in',
+          subject,
+          html: htmlContent,
+        });
+
+        console.log(`[MAILER] Registration confirmation email sent via Gmail port 587 to ${leader.email}.`);
+        return { success: true, provider: 'gmail_smtp_587' };
+      } catch (fallbackErr: any) {
+        console.error('[MAILER] Gmail port 587 also failed:', fallbackErr?.message || fallbackErr);
+        return { success: false, provider: 'gmail_smtp', error: fallbackErr?.message || gmailErr?.message };
+      }
     }
   } else {
     console.warn('[MAILER] GMAIL_APP_PASSWORD is not set in environment variables.');

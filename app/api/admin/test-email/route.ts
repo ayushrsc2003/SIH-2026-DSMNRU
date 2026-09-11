@@ -36,42 +36,78 @@ export async function GET(req: Request) {
       }, { status: 400 });
     }
 
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      auth: {
-        user: gmailUser,
-        pass: gmailPass,
-      },
-      tls: {
-        rejectUnauthorized: false,
-      },
-    });
+    let info: any;
+    let usedPort = 465;
 
-    // Verify SMTP connection
-    await transporter.verify();
+    try {
+      const transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        family: 4, // Force IPv4 to bypass Render container IPv6 ENETUNREACH
+        auth: {
+          user: gmailUser,
+          pass: gmailPass,
+        },
+        tls: {
+          rejectUnauthorized: false,
+        },
+      } as any);
 
-    // Send a test email to the owner
-    const info = await transporter.sendMail({
-      from: `"SIH 2026 Test Mailer" <${gmailUser}>`,
-      to: gmailUser,
-      subject: `SIH 2026 DSMNRU - Gmail SMTP Test Email (${new Date().toLocaleTimeString('en-IN')})`,
-      html: `
-        <div style="font-family:Arial,sans-serif;padding:20px;border:1px solid #e5e7eb;border-radius:8px;">
-          <h2 style="color:#059669;">✓ Gmail SMTP Configured Successfully!</h2>
-          <p>This is a diagnostic test email sent directly from your SIH 2026 portal via <strong>${gmailUser}</strong>.</p>
-          <p>Registration emails will now be delivered to candidate inboxes automatically.</p>
-        </div>
-      `,
-    });
+      await transporter.verify();
+
+      info = await transporter.sendMail({
+        from: `"SIH 2026 Test Mailer" <${gmailUser}>`,
+        to: gmailUser,
+        subject: `SIH 2026 DSMNRU - Gmail SMTP Test Email (${new Date().toLocaleTimeString('en-IN')})`,
+        html: `
+          <div style="font-family:Arial,sans-serif;padding:20px;border:1px solid #e5e7eb;border-radius:8px;">
+            <h2 style="color:#059669;">✓ Gmail SMTP Configured Successfully!</h2>
+            <p>This is a diagnostic test email sent directly from your SIH 2026 portal via <strong>${gmailUser}</strong>.</p>
+            <p>Registration emails will now be delivered to candidate inboxes automatically.</p>
+          </div>
+        `,
+      });
+    } catch (primaryErr: any) {
+      console.warn('Port 465 failed, trying port 587 with IPv4:', primaryErr?.message);
+      usedPort = 587;
+      const fallbackTransporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false, // STARTTLS
+        family: 4,
+        auth: {
+          user: gmailUser,
+          pass: gmailPass,
+        },
+        tls: {
+          rejectUnauthorized: false,
+        },
+      } as any);
+
+      await fallbackTransporter.verify();
+
+      info = await fallbackTransporter.sendMail({
+        from: `"SIH 2026 Test Mailer" <${gmailUser}>`,
+        to: gmailUser,
+        subject: `SIH 2026 DSMNRU - Gmail SMTP Test Email Port 587 (${new Date().toLocaleTimeString('en-IN')})`,
+        html: `
+          <div style="font-family:Arial,sans-serif;padding:20px;border:1px solid #e5e7eb;border-radius:8px;">
+            <h2 style="color:#059669;">✓ Gmail SMTP Configured Successfully (Port 587)!</h2>
+            <p>This is a diagnostic test email sent directly from your SIH 2026 portal via <strong>${gmailUser}</strong>.</p>
+            <p>Registration emails will now be delivered to candidate inboxes automatically.</p>
+          </div>
+        `,
+      });
+    }
 
     return NextResponse.json({
       success: true,
       status: 'VERIFIED_AND_SENT',
-      message: `Test email successfully sent to ${gmailUser}`,
+      message: `Test email successfully sent to ${gmailUser} via port ${usedPort}`,
       messageId: info.messageId,
       gmailUser,
+      usedPort,
       hasPassword: true,
       passwordLength: gmailPass.length,
     });
