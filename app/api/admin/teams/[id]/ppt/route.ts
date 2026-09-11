@@ -10,6 +10,8 @@ const mimeTypes: Record<string, string> = {
   '.pdf': 'application/pdf',
   '.ppt': 'application/vnd.ms-powerpoint',
   '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  '.doc': 'application/msword',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 };
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {

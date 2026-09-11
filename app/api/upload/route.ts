@@ -15,13 +15,13 @@ export async function POST(req: Request) {
     }
 
     const extension = file.name.split('.').pop()?.toLowerCase();
-    if (!['ppt', 'pptx'].includes(extension || '')) {
-      return NextResponse.json({ error: 'Only .ppt and .pptx files are allowed.' }, { status: 400 });
+    if (!['ppt', 'pptx', 'doc', 'docx', 'pdf'].includes(extension || '')) {
+      return NextResponse.json({ error: 'Only .ppt, .pptx, .doc, .docx, and .pdf files are allowed.' }, { status: 400 });
     }
 
     if (file.size > 10 * 1024 * 1024) {
       const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
-      return NextResponse.json({ error: `File size (${sizeMB} MB) exceeds Cloudinary 10 MB limit. Please compress images in your PPT and try again.` }, { status: 400 });
+      return NextResponse.json({ error: `File size (${sizeMB} MB) exceeds Cloudinary 10 MB limit. Please compress images in your document or presentation and try again.` }, { status: 400 });
     }
 
     const arrayBuffer = await file.arrayBuffer();

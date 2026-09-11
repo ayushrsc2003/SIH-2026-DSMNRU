@@ -102,12 +102,12 @@ export default function RegisterPage() {
       return;
     }
 
-    const allowedExts = ['.ppt', '.pptx'];
+    const allowedExts = ['.ppt', '.pptx', '.doc', '.docx', '.pdf'];
     const fileNameLower = file.name.toLowerCase();
     const isAllowedExt = allowedExts.some((ext) => fileNameLower.endsWith(ext));
 
     if (!isAllowedExt) {
-      setFileError('Invalid file type! Only .ppt and .pptx files are allowed.');
+      setFileError('Invalid file type! Allowed formats are .ppt, .pptx, .doc, .docx, and .pdf.');
       setPptFile(null);
       return;
     }
@@ -115,7 +115,7 @@ export default function RegisterPage() {
     const maxSizeBytes = 10 * 1024 * 1024;
     if (file.size > maxSizeBytes) {
       const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-      setFileError(`File size (${sizeMB} MB) exceeds maximum allowed limit of 10 MB. Please compress the PPT file.`);
+      setFileError(`File size (${sizeMB} MB) exceeds maximum allowed limit of 10 MB. Please compress your document.`);
       setPptFile(null);
       return;
     }
@@ -490,7 +490,7 @@ export default function RegisterPage() {
 
                 <div className="flex items-center space-x-2 p-2.5 rounded-xl bg-surface-light/60 border border-surface-border">
                   {checklist.fileValid ? <CheckCircle2 className="w-4 h-4 text-accentGreen shrink-0" /> : <AlertCircle className="w-4 h-4 text-slate-500 shrink-0" />}
-                  <span className="text-slate-200">PPT &le; 10MB Uploaded</span>
+                  <span className="text-slate-200">Idea File &le; 10MB Uploaded</span>
                 </div>
               </div>
             </div>
@@ -790,12 +790,12 @@ export default function RegisterPage() {
               ))}
             </div>
 
-            {/* Step 4: Direct Private File Upload (Max 5MB) */}
+            {/* Step 4: Direct Private File Upload (Max 10MB) */}
             <div className="p-6 sm:p-8 rounded-2xl glass-panel border border-surface-border space-y-4">
               <div className="border-b border-surface-border pb-3 flex items-center justify-between">
                 <h2 className="text-lg font-heading font-bold text-white flex items-center space-x-2">
                   <span className="w-6 h-6 rounded-full bg-saffron text-white text-xs flex items-center justify-center font-mono font-bold">4</span>
-                  <span>Upload Idea Presentation File (Required)</span>
+                  <span>Upload Idea Presentation / Document (Required)</span>
                 </h2>
                 <span className="px-2.5 py-0.5 text-[10px] font-mono rounded bg-accentGreen/15 text-accentGreen border border-accentGreen/30">
                   🔒 Encrypted Server Storage
@@ -804,22 +804,22 @@ export default function RegisterPage() {
 
               <div>
                 <label className="block text-xs font-mono font-semibold text-slate-300 uppercase mb-2">
-                  Upload Idea File (.ppt, .pptx only, Max 10 MB) <span className="text-saffron">*</span>
+                  Upload Idea File (.ppt, .pptx, .doc, .docx, .pdf, Max 10 MB) <span className="text-saffron">*</span>
                 </label>
                 
                 <div className="relative border-2 border-dashed border-surface-border hover:border-saffron rounded-2xl p-8 text-center transition-colors">
                   <input
                     type="file"
                     required
-                    accept=".ppt,.pptx"
+                    accept=".ppt,.pptx,.doc,.docx,.pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/pdf"
                     onChange={handleFileChange}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                   />
                   <Upload className="w-9 h-9 text-saffron mx-auto mb-2" />
                   <p className="text-sm font-heading font-bold text-white">
-                    {pptFile ? `Selected: ${pptFile.name} (${(pptFile.size / (1024 * 1024)).toFixed(2)} MB)` : 'Click or Drag & Drop your presentation file here'}
+                    {pptFile ? `Selected: ${pptFile.name} (${(pptFile.size / (1024 * 1024)).toFixed(2)} MB)` : 'Click or Drag & Drop your presentation / Word file here'}
                   </p>
-                  <p className="text-xs text-slate-400 font-mono mt-1">Allowed formats: .ppt, .pptx (Maximum size: 10 MB)</p>
+                  <p className="text-xs text-slate-400 font-mono mt-1">Allowed formats: .ppt, .pptx, .doc, .docx, .pdf (Maximum size: 10 MB)</p>
                 </div>
 
                 {fileError && (
