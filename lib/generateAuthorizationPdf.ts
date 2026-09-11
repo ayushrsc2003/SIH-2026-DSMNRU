@@ -101,7 +101,7 @@ export async function generateAuthorizationPdfBytes(data: AuthorizationPdfData):
 
   const page = pdfDoc.getPages()[0];
 
-  // 1. Draw Submission Date (DD/MM/YYYY) directly next to Date: label at Y: 617.52
+  // 1. Draw Submission Date (DD/MM/YYYY) directly next to Date: label at Y: 672.5
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-GB', {
     day: '2-digit',
@@ -110,25 +110,25 @@ export async function generateAuthorizationPdfBytes(data: AuthorizationPdfData):
   });
 
   page.drawText(dateStr, {
-    x: 488,
-    y: 617.52,
+    x: 490,
+    y: 672.5,
     size: 11,
     font: font,
     color: rgb(0, 0, 0),
   });
 
-  // 2. Draw Team Name on line "Team : < Team Name >" at Y: 523.44
+  // 2. Draw Team Name on line "Team : < Team Name >" at Y: 536.2
   // Cover pre-printed '< Team Name >' placeholder with a clean white box
   page.drawRectangle({
-    x: 52,
-    y: 518,
-    width: 320,
-    height: 16,
+    x: 50,
+    y: 530,
+    width: 350,
+    height: 18,
     color: rgb(1, 1, 1),
   });
   page.drawText(data.teamName.slice(0, 45), {
-    x: 55,
-    y: 523.44,
+    x: 54,
+    y: 536.2,
     size: 11,
     font: fontBold,
     color: rgb(0, 0, 0),
@@ -155,7 +155,7 @@ export async function generateAuthorizationPdfBytes(data: AuthorizationPdfData):
   ];
 
   // Exact row Y baselines matching the template table grid
-  const rowYs = [462.5, 420.5, 378.0, 335.5, 293.0, 250.5];
+  const rowYs = [462.0, 422.0, 380.0, 337.0, 294.5, 252.5];
 
   participants.forEach((m, idx) => {
     const y = rowYs[idx];
