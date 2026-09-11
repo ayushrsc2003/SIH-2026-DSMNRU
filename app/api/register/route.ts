@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { prisma } from '@/lib/prisma';
-import { generateAuthorizationLetter } from '@/lib/generateAuthorizationLetter';
+import { generateAuthorizationPdf } from '@/lib/generateAuthorizationPdf';
 import sihProblemStatements from '@/data/sihProblemStatements.json';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +19,62 @@ function escapeHtml(value: string) {
   return value.replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character] as string));
 }
 
+async function forwardToGoogleSheets({
+  timestamp,
+  teamId,
+  teamName,
+  psCode,
+  psTitle,
+  category,
+  leader,
+  members,
+  pptUrl,
+  authLetterUrl,
+}: {
+  timestamp: string;
+  teamId: string;
+  teamName: string;
+  psCode: string;
+  psTitle: string;
+  category: string;
+  leader: Participant;
+  members: Participant[];
+  pptUrl: string;
+  authLetterUrl: string;
+}) {
+  const webhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL;
+  if (!webhookUrl) return;
+
+  try {
+    const memberDetailsString = members
+      .map((m, idx) => `Member ${idx + 1}: ${m.name} (${m.gender}, ${m.branch}, ${m.year}, ${m.email}, ${m.phone})`)
+      .join(' | ');
+
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        timestamp,
+        teamId,
+        teamName,
+        problemStatementCode: psCode,
+        problemStatementTitle: psTitle,
+        category,
+        leaderName: leader.name,
+        leaderEmail: leader.email,
+        leaderPhone: leader.phone,
+        leaderBranch: leader.branch,
+        leaderYear: leader.year,
+        memberDetails: memberDetailsString,
+        pptUrl,
+        authLetterUrl,
+      }),
+    });
+  } catch (err) {
+    console.error('Failed to forward registration data to Google Sheets webhook:', err);
+  }
+}
+
 async function sendConfirmationEmail({ teamId, teamName, psCode, psTitle, category, leader, authLetterUrl }: { teamId: string; teamName: string; psCode: string; psTitle: string; category: string; leader: Participant; authLetterUrl: string }) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM;
@@ -26,20 +82,30 @@ async function sendConfirmationEmail({ teamId, teamName, psCode, psTitle, catego
     console.warn('Registration confirmation email skipped: Resend is not configured.');
     return;
   }
-  const values = [['Team ID', teamId], ['Team Name', teamName], ['Problem Statement', `${psCode} - ${psTitle}`], ['Category', category], ['Team Leader', leader.name], ['Leader Email', leader.email], ['Leader Phone', leader.phone]];
+  const values = [
+    ['Team ID', teamId],
+    ['Team Name', teamName],
+    ['Problem Statement', `${psCode} - ${psTitle}`],
+    ['Category', category],
+    ['Team Leader', leader.name],
+    ['Leader Email', leader.email],
+    ['Leader Phone', leader.phone],
+    ['Branch', leader.branch],
+    ['Academic Year', leader.year],
+  ];
   const rows = values.map(([label, value]) => `<tr><td style="padding:8px;border:1px solid #d1d5db;font-weight:600">${escapeHtml(label)}</td><td style="padding:8px;border:1px solid #d1d5db">${escapeHtml(value)}</td></tr>`).join('');
   await new Resend(apiKey).emails.send({
     from,
     to: leader.email,
     replyTo: 'achaurasiya_csebtech23_041@dsmnru.ac.in',
     subject: `SIH 2026 Registration Confirmed - ${teamId}`,
-    html: `<main style="font-family:Arial,sans-serif;color:#111827;max-width:640px;margin:0 auto"><h1>SIH 2026 Internal Hackathon Registration Confirmed</h1><p>Hello ${escapeHtml(leader.name)},</p><p>Your team registration has been received successfully. Keep your Team ID for future reference.</p><table style="border-collapse:collapse;width:100%"><tbody>${rows}</tbody></table><p style="margin:28px 0"><a href="${authLetterUrl}" style="background:#ea580c;color:#ffffff;padding:12px 18px;border-radius:6px;text-decoration:none;font-weight:700">Download Authorization Letter</a></p><p><strong>Next step:</strong> Print the authorization letter, obtain the HOD/Dean's physical signature and official stamp, and bring it to the internal evaluation round.</p><p>Regards,<br>SIH 2026 Internal Hackathon Team<br>IET DSMNRU<br>Student Coordinator Contact: achaurasiya_csebtech23_041@dsmnru.ac.in</p></main>`,
+    html: `<main style="font-family:Arial,sans-serif;color:#111827;max-width:640px;margin:0 auto"><h1>SIH 2026 Internal Hackathon Registration Confirmed</h1><p>Hello ${escapeHtml(leader.name)},</p><p>Your team registration for Smart India Hackathon 2026 (Internal Round) at IET DSMNRU has been received successfully.</p><table style="border-collapse:collapse;width:100%"><tbody>${rows}</tbody></table><p style="margin:28px 0"><a href="${authLetterUrl}" style="background:#ea580c;color:#ffffff;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:700;display:inline-block">Download Official Authorization Letter (PDF)</a></p><div style="background:#f3f4f6;padding:14px;border-radius:6px;margin:20px 0;font-size:13px;line-height:1.5"><p style="margin:0 0 6px 0"><strong>Important Dates & Instructions:</strong></p><ul style="margin:0;padding-left:20px"><li><strong>Internal Hackathon Dates:</strong> 15th &amp; 16th September 2026 (IET DSMNRU Campus)</li><li><strong>Next step:</strong> Download and print the official Authorization Letter PDF and bring it along with your student ID cards to the internal evaluation round.</li></ul></div><p>Regards,<br><strong>SIH 2026 Organizing Committee</strong><br>Institute of Engineering &amp; Technology (IET)<br>Dr. Shakuntala Misra National Rehabilitation University, Lucknow<br>Student Coordinator Contact: achaurasiya_csebtech23_041@dsmnru.ac.in</p></main>`,
   });
 }
 
 export async function POST(req: Request) {
   try {
-    if (new Date() > new Date('2026-09-12T23:59:59+05:30')) return NextResponse.json({ error: 'Registration closed on 12 September 2026.' }, { status: 403 });
+    if (new Date() > new Date('2026-09-14T13:00:00+05:30')) return NextResponse.json({ error: 'Registration closed on 14 September 2026 at 1:00 PM.' }, { status: 403 });
     const config = await prisma.systemConfig.findUnique({ where: { id: 'config' } });
     if (!config?.isRegistrationActive) return NextResponse.json({ error: 'Registration is currently closed by college administration.' }, { status: 403 });
 
@@ -82,11 +148,11 @@ export async function POST(req: Request) {
     const existingMembers = await prisma.member.findMany({ where: { email: { in: participants.map((participant) => participant.email) } } });
     if (existingMembers.length) return NextResponse.json({ error: 'One or more participant email addresses are already registered with another team.' }, { status: 409 });
 
-    const authLetterUrl = await generateAuthorizationLetter({
+    const authLetterUrl = await generateAuthorizationPdf({
       collegeName: process.env.COLLEGE_NAME || 'Institute of Engineering & Technology (IET), Dr. Shakuntala Misra National Rehabilitation University, Lucknow (UGC AISHE: U-0512)',
       teamName, psCode, psTitle, category: officialProblemStatement.category,
       leaderName: participants[0].name, leaderGender: participants[0].gender, leaderEmail: participants[0].email, leaderPhone: participants[0].phone,
-      leaderBranch: participants[0].branch || 'CSE', leaderYear: participants[0].year, deanName: process.env.DEAN_NAME || 'Principal / Dean',
+      leaderBranch: participants[0].branch || 'CSE', leaderYear: participants[0].year, deanName: process.env.DEAN_NAME || 'Prof. C.K. Dixit',
       members: participants.slice(1).map((member) => ({ name: member.name, gender: member.gender, email: member.email, phone: member.phone, branch: member.branch || 'CSE', year: member.year })),
     });
 
@@ -96,9 +162,23 @@ export async function POST(req: Request) {
         problemStatementId: psCode, problemStatementTitle: psTitle,
         leaderName: participants[0].name, leaderEmail: participants[0].email, leaderPhone: participants[0].phone,
         pptUrl, pptFileName,
-        authLetterUrl, authDocxPath: authLetterUrl,
+        authLetterUrl, authPdfPath: authLetterUrl, authDocxPath: authLetterUrl,
         members: { create: participants.map((participant, index) => ({ name: participant.name, gender: participant.gender, email: participant.email, phone: participant.phone, branch: participant.branch, year: participant.year, isLeader: index === 0 })) },
       },
+    });
+
+    // Forward to Google Sheets webhook if configured
+    forwardToGoogleSheets({
+      timestamp: new Date().toISOString(),
+      teamId: createdTeam.teamId,
+      teamName,
+      psCode,
+      psTitle,
+      category: officialProblemStatement.category,
+      leader: participants[0],
+      members: participants.slice(1),
+      pptUrl,
+      authLetterUrl,
     });
 
     try {
@@ -107,7 +187,7 @@ export async function POST(req: Request) {
       console.error('Registration confirmation email failed:', emailError);
     }
 
-    return NextResponse.json({ success: true, message: `Registration submitted successfully for Team "${createdTeam.teamName}".`, teamId: createdTeam.teamId }, { status: 201 });
+    return NextResponse.json({ success: true, message: `Registration submitted successfully for Team "${createdTeam.teamName}".`, teamId: createdTeam.teamId, authLetterUrl }, { status: 201 });
   } catch (error) {
     console.error('Registration API error:', error);
     return NextResponse.json({ error: 'Unable to complete registration. Please try again.' }, { status: 500 });

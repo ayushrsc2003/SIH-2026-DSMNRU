@@ -73,7 +73,7 @@ export default function Hero({ onOpenCheckStatus }: HeroProps) {
 
           <div className="mt-5 inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/40 text-red-200 shadow-lg">
             <CalendarClock className="w-5 h-5 text-red-400 shrink-0" />
-            <span className="text-sm font-heading font-bold">Last date for team registration: 12 September 2026</span>
+            <span className="text-sm font-heading font-bold">Last date for team registration: 14 September 2026 (till 1:00 PM) | Hackathon: 15–16 September 2026</span>
           </div>
 
           {/* CTA Buttons */}

@@ -396,7 +396,7 @@ export default function RegisterPage() {
 
           <div className="mt-4 inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/40 text-red-200 text-sm font-heading font-bold">
             <Clock className="w-4 h-4 text-red-400" />
-            <span>Registration closes on 12 September 2026</span>
+            <span>Registration closes on 14 September 2026 at 1:00 PM | Hackathon on 15th & 16th September 2026</span>
           </div>
 
           <div className="mt-4 flex flex-wrap items-center justify-center gap-3">

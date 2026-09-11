@@ -8,7 +8,7 @@ export default function Timeline() {
     {
       step: '01',
       title: 'Registration Phase',
-      date: 'Closes 12 September 2026',
+      date: 'Closes 14 September 2026 (1:00 PM)',
       desc: 'Form your team of 6 members (min 1 female) and submit team details before the registration deadline.',
       status: 'Current Phase',
       active: true,
@@ -43,8 +43,8 @@ export default function Timeline() {
     },
     {
       step: '05',
-      title: 'Grand Hackathon Day (On-Campus)',
-      date: 'Hackathon Day',
+      title: 'Grand Hackathon Days (15th & 16th September 2026)',
+      date: '15–16 Sept 2026',
       desc: 'Live 24-Hour prototype building & live code defense at IET DSMNRU Campus, Lucknow.',
       status: 'On-Campus',
       active: false,
