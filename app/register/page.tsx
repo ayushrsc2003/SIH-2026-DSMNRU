@@ -442,22 +442,8 @@ export default function RegisterPage() {
 
             <div className="p-4 rounded-xl bg-navy-900/80 border border-surface-border text-xs text-slate-400 font-mono space-y-1 max-w-md mx-auto">
               <p className="text-saffron font-bold">🔒 Admin Workflow Note:</p>
-              <p>Your uploaded PPT file and official Authorization Letter have been safely received by college administration.</p>
+              <p>Your uploaded PPT synopsis has been received. The official Authorization Letter has been automatically generated and forwarded to the college administration / Dean office for official internal review.</p>
             </div>
-
-            {successResponse.teamId && (
-              <div className="pt-2">
-                <a
-                  href={`/api/letters/${successResponse.teamId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center space-x-2 px-6 py-3.5 text-sm font-heading font-bold text-white bg-accentGreen hover:bg-emerald-600 rounded-xl shadow-green-glow transition-all"
-                >
-                  <FileText className="w-4 h-4" />
-                  <span>Download Official Authorization Letter (PDF)</span>
-                </a>
-              </div>
-            )}
 
             <div>
               <button

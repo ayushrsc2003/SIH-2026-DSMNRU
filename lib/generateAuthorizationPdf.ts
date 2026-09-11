@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import fsSync from 'fs';
 import path from 'path';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
 import { cloudinary, getCloudinaryConfig } from '@/lib/cloudinary';
 
 export interface AuthorizationPdfData {
@@ -79,40 +80,56 @@ export async function generateAuthorizationPdfBytes(data: AuthorizationPdfData):
 
   const basePdfBytes = await fs.readFile(templatePath);
   const pdfDoc = await PDFDocument.load(basePdfBytes);
+  pdfDoc.registerFontkit(fontkit);
+
+  // Load Calibri Fonts (with graceful fallback to Helvetica)
+  let font: any;
+  let fontBold: any;
+
+  const calibriPath = path.join(process.cwd(), 'public', 'fonts', 'calibri.ttf');
+  const calibriBoldPath = path.join(process.cwd(), 'public', 'fonts', 'calibrib.ttf');
+
+  if (fsSync.existsSync(calibriPath) && fsSync.existsSync(calibriBoldPath)) {
+    const calibriBytes = await fs.readFile(calibriPath);
+    const calibriBoldBytes = await fs.readFile(calibriBoldPath);
+    font = await pdfDoc.embedFont(calibriBytes);
+    fontBold = await pdfDoc.embedFont(calibriBoldBytes);
+  } else {
+    font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  }
+
   const page = pdfDoc.getPages()[0];
 
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-
-  // 1. Draw Submission Date (DD-MM-YYYY)
+  // 1. Draw Submission Date (DD/MM/YYYY) directly next to Date: label at Y: 617.52
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-GB', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
-  }).replace(/\//g, '-');
+  });
 
   page.drawText(dateStr, {
-    x: 482,
-    y: 617.5,
-    size: 10,
-    font: fontBold,
+    x: 488,
+    y: 617.52,
+    size: 11,
+    font: font,
     color: rgb(0, 0, 0),
   });
 
-  // 2. Draw Team Name
+  // 2. Draw Team Name on line "Team : < Team Name >" at Y: 523.44
   // Cover pre-printed '< Team Name >' placeholder with a clean white box
   page.drawRectangle({
     x: 52,
-    y: 520,
+    y: 518,
     width: 320,
     height: 16,
     color: rgb(1, 1, 1),
   });
   page.drawText(data.teamName.slice(0, 45), {
-    x: 56,
-    y: 523.5,
-    size: 10,
+    x: 55,
+    y: 523.44,
+    size: 11,
     font: fontBold,
     color: rgb(0, 0, 0),
   });
@@ -125,7 +142,7 @@ export async function generateAuthorizationPdfBytes(data: AuthorizationPdfData):
       email: data.leaderEmail,
       phone: data.leaderPhone,
       stream: data.leaderBranch || 'CSE',
-      year: data.leaderYear || '3rd Year',
+      year: data.leaderYear || '2023-2027',
     },
     ...data.members.slice(0, 5).map((m) => ({
       name: m.name,
@@ -133,75 +150,75 @@ export async function generateAuthorizationPdfBytes(data: AuthorizationPdfData):
       email: m.email,
       phone: m.phone,
       stream: m.branch || 'CSE',
-      year: m.year || '3rd Year',
+      year: m.year || '2023-2027',
     })),
   ];
 
-  // Exact row Y baselines in FINAL_COPY_AUTHORIZATION_LETTER.pdf
-  const rowYs = [462, 420, 377, 335, 292, 249];
+  // Exact row Y baselines matching the template table grid
+  const rowYs = [462.5, 420.5, 378.0, 335.5, 293.0, 250.5];
 
   participants.forEach((m, idx) => {
     const y = rowYs[idx];
     if (typeof y !== 'number') return;
 
-    // Col 1: Name (87.72 to 178.2)
-    const cleanName = m.name.trim().slice(0, 20);
+    // Col 1: Name (87.72 to 178.68)
+    const cleanName = m.name.trim().slice(0, 22);
     page.drawText(cleanName, {
-      x: 91,
+      x: 93,
       y,
-      size: 8.5,
-      font: idx === 0 ? fontBold : font,
+      size: 9.5,
+      font: font,
       color: rgb(0, 0, 0),
     });
 
-    // Col 2: Gender (M/F) (178.68 to 233.04)
+    // Col 2: Gender (M/F) (178.68 to 233.52)
     const genderLetter = m.gender.toUpperCase().startsWith('F') ? 'F' : 'M';
     page.drawText(genderLetter, {
       x: 202,
       y,
-      size: 9,
-      font,
+      size: 9.5,
+      font: font,
       color: rgb(0, 0, 0),
     });
 
-    // Col 3: Email (233.52 to 376.68)
+    // Col 3: Email (233.52 to 377.16)
     const cleanEmail = m.email.trim();
     const displayEmail = cleanEmail.length > 25 ? `${cleanEmail.slice(0, 23)}...` : cleanEmail;
     page.drawText(displayEmail, {
-      x: 236,
+      x: 238,
       y,
-      size: 7.5,
-      font,
+      size: 8.5,
+      font: font,
       color: rgb(0, 0, 0),
     });
 
-    // Col 4: Mobile no. (377.16 to 447.48)
+    // Col 4: Mobile no. (377.16 to 447.96)
     const cleanPhone = m.phone.trim();
     page.drawText(cleanPhone, {
-      x: 380,
+      x: 382,
       y,
-      size: 8.5,
-      font,
+      size: 9,
+      font: font,
       color: rgb(0, 0, 0),
     });
 
-    // Col 5: Stream / Branch (447.96 to 511.32)
-    const cleanStream = m.stream.trim().slice(0, 10);
+    // Col 5: Stream / Branch (447.96 to 511.80)
+    const cleanStream = m.stream.trim().slice(0, 12);
     page.drawText(cleanStream, {
-      x: 452,
+      x: 453,
       y,
-      size: 8.5,
-      font,
+      size: 9,
+      font: font,
       color: rgb(0, 0, 0),
     });
 
-    // Col 6: Academic Year (511.8 to 582.12)
-    const cleanYear = m.year.trim().slice(0, 10);
+    // Col 6: Academic Year (511.80 to 582.12)
+    const cleanYear = m.year.trim().slice(0, 12);
     page.drawText(cleanYear, {
-      x: 516,
+      x: 517,
       y,
-      size: 8.5,
-      font,
+      size: 9,
+      font: font,
       color: rgb(0, 0, 0),
     });
   });
