@@ -36,11 +36,14 @@ export async function sendConfirmationEmail({
   category,
   leader,
 }: SendConfirmationEmailParams): Promise<{ success: boolean; provider: string; error?: string }> {
-  const gmailUser = (process.env.GMAIL_USER || 'ayushchaurasiya.ietdsmnru@gmail.com').trim();
-  const gmailPass = (process.env.GMAIL_APP_PASSWORD || process.env.GMAIL_PASSWORD || process.env.EMAIL_PASS || '').trim().replace(/\s+/g, '');
+  const rawUser = process.env.GMAIL_USER || process.env.EMAIL_USER || 'ayushchaurasiya.ietdsmnru@gmail.com';
+  const gmailUser = rawUser.trim().replace(/^["']|["']$/g, '');
 
-  const resendApiKey = process.env.RESEND_API_KEY?.trim();
-  const resendFrom = process.env.RESEND_FROM?.trim();
+  const rawPass = process.env.GMAIL_APP_PASSWORD || process.env.GMAIL_PASSWORD || process.env.GMAIL_PASS || process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD || '';
+  const gmailPass = rawPass.trim().replace(/^["']|["']$/g, '').replace(/\s+/g, '');
+
+  const resendApiKey = process.env.RESEND_API_KEY?.trim().replace(/^["']|["']$/g, '');
+  const resendFrom = process.env.RESEND_FROM?.trim().replace(/^["']|["']$/g, '');
 
   const values = [
     ['Team ID', teamId],
@@ -121,10 +124,15 @@ export async function sendConfirmationEmail({
   if (gmailPass) {
     try {
       const transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true, // SSL
         auth: {
           user: gmailUser,
           pass: gmailPass,
+        },
+        tls: {
+          rejectUnauthorized: false,
         },
       });
 
@@ -140,6 +148,7 @@ export async function sendConfirmationEmail({
       return { success: true, provider: 'gmail_smtp' };
     } catch (gmailErr: any) {
       console.error('[MAILER] Gmail SMTP sending error:', gmailErr?.message || gmailErr);
+      return { success: false, provider: 'gmail_smtp', error: gmailErr?.message || 'Gmail SMTP failed' };
     }
   } else {
     console.warn('[MAILER] GMAIL_APP_PASSWORD is not set in environment variables.');
