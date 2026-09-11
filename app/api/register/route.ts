@@ -75,33 +75,7 @@ async function forwardToGoogleSheets({
   }
 }
 
-async function sendConfirmationEmail({ teamId, teamName, psCode, psTitle, category, leader, authLetterUrl }: { teamId: string; teamName: string; psCode: string; psTitle: string; category: string; leader: Participant; authLetterUrl: string }) {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM;
-  if (!apiKey || !from) {
-    console.warn('Registration confirmation email skipped: Resend is not configured.');
-    return;
-  }
-  const values = [
-    ['Team ID', teamId],
-    ['Team Name', teamName],
-    ['Problem Statement', `${psCode} - ${psTitle}`],
-    ['Category', category],
-    ['Team Leader', leader.name],
-    ['Leader Email', leader.email],
-    ['Leader Phone', leader.phone],
-    ['Branch', leader.branch],
-    ['Academic Year', leader.year],
-  ];
-  const rows = values.map(([label, value]) => `<tr><td style="padding:8px;border:1px solid #d1d5db;font-weight:600">${escapeHtml(label)}</td><td style="padding:8px;border:1px solid #d1d5db">${escapeHtml(value)}</td></tr>`).join('');
-  await new Resend(apiKey).emails.send({
-    from,
-    to: leader.email,
-    replyTo: 'achaurasiya_csebtech23_041@dsmnru.ac.in',
-    subject: `SIH 2026 Registration Confirmed - ${teamId}`,
-    html: `<main style="font-family:Arial,sans-serif;color:#111827;max-width:640px;margin:0 auto"><h1>SIH 2026 Internal Hackathon Registration Confirmed</h1><p>Hello ${escapeHtml(leader.name)},</p><p>Your team registration for Smart India Hackathon 2026 (Internal Round) at IET DSMNRU has been received successfully.</p><table style="border-collapse:collapse;width:100%"><tbody>${rows}</tbody></table><div style="background:#f3f4f6;padding:14px;border-radius:6px;margin:20px 0;font-size:13px;line-height:1.5"><p style="margin:0 0 6px 0"><strong>Important Dates & Instructions:</strong></p><ul style="margin:0;padding-left:20px"><li><strong>Internal Hackathon Dates:</strong> 15th &amp; 16th September 2026 (IET DSMNRU Campus)</li><li><strong>Authorization Letter:</strong> Your official university authorization letter has been automatically generated and forwarded to the college administration / Dean office for internal validation.</li><li><strong>What to bring:</strong> Bring your student ID cards and laptops to the internal evaluation round.</li></ul></div><p>Regards,<br><strong>SIH 2026 Organizing Committee</strong><br>Institute of Engineering &amp; Technology (IET)<br>Dr. Shakuntala Misra National Rehabilitation University, Lucknow<br>Student Coordinator Contact: achaurasiya_csebtech23_041@dsmnru.ac.in</p></main>`,
-  });
-}
+import { sendConfirmationEmail } from '@/lib/mailer';
 
 export async function POST(req: Request) {
   try {
@@ -193,7 +167,6 @@ export async function POST(req: Request) {
         psTitle,
         category: officialProblemStatement.category,
         leader: participants[0],
-        authLetterUrl: letterDirectUrl,
       });
     } catch (emailError) {
       console.error('Registration confirmation email failed:', emailError);
